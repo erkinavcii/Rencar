@@ -284,18 +284,6 @@ fun LicenseScreen(
                                     color = MaterialTheme.colorScheme.onBackground,
                                     textAlign = TextAlign.Center
                                 )
-                                
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Text(
-                                    text = "Belge Numarası: ${state.licenseId ?: "İncelemede"}",
-                                    style = labelM,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Primary,
-                                    modifier = Modifier
-                                        .background(Primary.copy(alpha = 0.05f), RoundedCornerShape(8.dp))
-                                        .padding(horizontal = 12.dp, vertical = 6.dp)
-                                )
-
                                 Spacer(modifier = Modifier.height(12.dp))
                                 Text(
                                     text = "Yapay zeka yüz benzerlik analizi gerçekleştiriliyor. Bu işlem birkaç saniye sürebilir.",
@@ -344,18 +332,6 @@ fun LicenseScreen(
                                         )
                                     }
                                 }
-
-                                // Debug auto-approve simulator button (kept visible as local simulation backup)
-                                Spacer(modifier = Modifier.height(32.dp))
-                                Button(
-                                    onClick = { onIntent(LicenseIntent.TriggerAutoApprove) },
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = SuccessDefault
-                                    ),
-                                    shape = RoundedCornerShape(12.dp)
-                                ) {
-                                    Text("Yapay Zeka Onayını Simüle Et", color = Color.White, style = labelM)
-                                }
                             }
                             "APPROVED" -> {
                                 Box(
@@ -379,17 +355,6 @@ fun LicenseScreen(
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onBackground,
                                     textAlign = TextAlign.Center
-                                )
-
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Text(
-                                    text = "Belge Numarası: ${state.licenseId ?: "Onaylandı"}",
-                                    style = labelM,
-                                    fontWeight = FontWeight.Bold,
-                                    color = SuccessDefault,
-                                    modifier = Modifier
-                                        .background(SuccessDefault.copy(alpha = 0.05f), RoundedCornerShape(8.dp))
-                                        .padding(horizontal = 12.dp, vertical = 6.dp)
                                 )
 
                                 Spacer(modifier = Modifier.height(12.dp))
@@ -466,12 +431,51 @@ fun LicenseScreen(
                                 )
                                 Spacer(modifier = Modifier.height(12.dp))
                                 Text(
-                                    text = "Yüklediğiniz görseller veya selfie eşleşmesi doğrulanamadı. Lütfen belgelerinizi kontrol ederek tekrar yükleyin.",
+                                    text = state.rejectReason ?: "Yüklediğiniz görseller veya selfie eşleşmesi doğrulanamadı. Lütfen belgelerinizi kontrol ederek tekrar yükleyin.",
                                     style = bodyM,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     textAlign = TextAlign.Center,
                                     modifier = Modifier.padding(horizontal = 16.dp)
                                 )
+
+                                Spacer(modifier = Modifier.height(24.dp))
+
+                                val frontUri = state.frontImageUri ?: state.frontImageUrl?.let { Uri.parse(it) }
+                                val backUri = state.backImageUri ?: state.backImageUrl?.let { Uri.parse(it) }
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = "Ehliyet ön yüz",
+                                            style = labelS,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onBackground
+                                        )
+                                        Spacer(modifier = Modifier.height(6.dp))
+                                        UploadSlot(
+                                            imageUri = frontUri,
+                                            onClick = {},
+                                            placeholderText = "Yüklenmedi"
+                                        )
+                                    }
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = "Ehliyet arka yüz",
+                                            style = labelS,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onBackground
+                                        )
+                                        Spacer(modifier = Modifier.height(6.dp))
+                                        UploadSlot(
+                                            imageUri = backUri,
+                                            onClick = {},
+                                            placeholderText = "Yüklenmedi"
+                                        )
+                                    }
+                                }
                             }
                         }
                     }

@@ -18,7 +18,7 @@ data class LicenseUiState(
     val isLoading: Boolean = false,
     val isSubmitEnabled: Boolean = false, // True if active step requirements are met
     val status: String = "NOT_SUBMITTED", // NOT_SUBMITTED, UNDER_REVIEW, APPROVED, REJECTED
-    val licenseId: String? = null // Captured from upload response for admin actions
+    val rejectReason: String? = null // Captured from backend status response
 )
 
 sealed interface LicenseIntent {
@@ -28,7 +28,6 @@ sealed interface LicenseIntent {
     data class Submit(val frontBytes: ByteArray, val backBytes: ByteArray) : LicenseIntent
     data object NextStepClicked : LicenseIntent
     data object BackStepClicked : LicenseIntent
-    data object TriggerAutoApprove : LicenseIntent
     data object RefreshStatus : LicenseIntent
 }
 
