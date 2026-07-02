@@ -195,51 +195,37 @@ fun LicenseScreen(
             when (state.currentStep) {
                 LicenseStep.EHLIYET -> {
                     // Front License Upload
-                    if (state.frontImageUri != null) {
-                        UploadedRow(
-                            title = "Ehliyet ön yüz",
-                            onClear = { frontLauncher.launch("image/*") }
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            text = "Ehliyet ön yüz",
+                            style = titleS,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onBackground,
                         )
-                    } else {
-                        Column(modifier = Modifier.fillMaxWidth()) {
-                            Text(
-                                text = "Ehliyet ön yüz",
-                                style = titleS,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onBackground,
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            UploadSlot(
-                                imageUri = null,
-                                onClick = { frontLauncher.launch("image/*") },
-                                placeholderText = "Ön yüzü çek veya yükle"
-                            )
-                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        UploadSlot(
+                            imageUri = state.frontImageUri,
+                            onClick = { frontLauncher.launch("image/*") },
+                            placeholderText = "Ön yüzü çek veya yükle"
+                        )
                     }
 
                     Spacer(modifier = Modifier.height(24.dp))
 
                     // Back License Upload
-                    if (state.backImageUri != null) {
-                        UploadedRow(
-                            title = "Ehliyet arka yüz",
-                            onClear = { backLauncher.launch("image/*") }
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            text = "Ehliyet arka yüz",
+                            style = titleS,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onBackground,
                         )
-                    } else {
-                        Column(modifier = Modifier.fillMaxWidth()) {
-                            Text(
-                                text = "Ehliyet arka yüz",
-                                style = titleS,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onBackground,
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            UploadSlot(
-                                imageUri = null,
-                                onClick = { backLauncher.launch("image/*") },
-                                placeholderText = "Arka yüzü çek veya yükle"
-                            )
-                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        UploadSlot(
+                            imageUri = state.backImageUri,
+                            onClick = { backLauncher.launch("image/*") },
+                            placeholderText = "Arka yüzü çek veya yükle"
+                        )
                     }
 
                     Spacer(modifier = Modifier.height(24.dp))
@@ -248,26 +234,19 @@ fun LicenseScreen(
                 }
                 LicenseStep.SELFIE -> {
                     // Selfie Upload
-                    if (state.selfieImageUri != null) {
-                        UploadedRow(
-                            title = "Selfie fotoğrafınız",
-                            onClear = { showSelfieSelector = true }
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            text = "Selfie",
+                            style = titleS,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onBackground,
                         )
-                    } else {
-                        Column(modifier = Modifier.fillMaxWidth()) {
-                            Text(
-                                text = "Selfie",
-                                style = titleS,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onBackground,
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            UploadSlot(
-                                imageUri = null,
-                                onClick = { showSelfieSelector = true },
-                                placeholderText = "Selfie çek veya yükle"
-                            )
-                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        UploadSlot(
+                            imageUri = state.selfieImageUri,
+                            onClick = { showSelfieSelector = true },
+                            placeholderText = "Selfie çek veya yükle"
+                        )
                     }
 
                     Spacer(modifier = Modifier.height(24.dp))
@@ -307,6 +286,20 @@ fun LicenseScreen(
                                     color = MaterialTheme.colorScheme.onBackground,
                                     textAlign = TextAlign.Center
                                 )
+                                
+                                if (state.licenseId != null) {
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text(
+                                        text = "Belge Numarası: ${state.licenseId}",
+                                        style = labelM,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Primary,
+                                        modifier = Modifier
+                                            .background(Primary.copy(alpha = 0.05f), RoundedCornerShape(8.dp))
+                                            .padding(horizontal = 12.dp, vertical = 6.dp)
+                                    )
+                                }
+
                                 Spacer(modifier = Modifier.height(12.dp))
                                 Text(
                                     text = "Yapay zeka yüz benzerlik analizi gerçekleştiriliyor. Bu işlem birkaç saniye sürebilir.",
@@ -353,6 +346,20 @@ fun LicenseScreen(
                                     color = MaterialTheme.colorScheme.onBackground,
                                     textAlign = TextAlign.Center
                                 )
+
+                                if (state.licenseId != null) {
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text(
+                                        text = "Belge Numarası: ${state.licenseId}",
+                                        style = labelM,
+                                        fontWeight = FontWeight.Bold,
+                                        color = SuccessDefault,
+                                        modifier = Modifier
+                                            .background(SuccessDefault.copy(alpha = 0.05f), RoundedCornerShape(8.dp))
+                                            .padding(horizontal = 12.dp, vertical = 6.dp)
+                                    )
+                                }
+
                                 Spacer(modifier = Modifier.height(12.dp))
                                 Text(
                                     text = "Kimliğiniz yapay zeka eşleştirmesiyle başarıyla doğrulandı. Artık araç kiralamaya hazırsınız.",
@@ -577,7 +584,7 @@ private fun StepperHeader(currentStep: LicenseStep) {
             number = 3,
             title = "Onay",
             isActive = currentStep == LicenseStep.ONAY,
-            isCompleted = currentStep == LicenseStep.ONAY && false // Completed when approved
+            isCompleted = currentStep == LicenseStep.ONAY && false
         )
     }
 }
@@ -636,9 +643,9 @@ private fun RowScope.StepDivider() {
     Box(
         modifier = Modifier
             .weight(1f)
-            .height(1.dp)
-            .padding(horizontal = 12.dp)
-            .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+            .height(2.dp)
+            .padding(horizontal = 8.dp)
+            .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
     )
 }
 
@@ -753,6 +760,34 @@ private fun UploadSlot(
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()
                 )
+                // Semi-transparent overlay to ensure legibility of the green badge
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.3f))
+                )
+                // Green checkmark badge centered
+                Row(
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .background(SuccessDefault, RoundedCornerShape(8.dp))
+                        .padding(horizontal = 12.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Check,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "Yüklendi",
+                        color = Color.White,
+                        style = labelM,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
         } else {
             Column(
