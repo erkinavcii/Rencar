@@ -37,7 +37,6 @@ class LicenseViewModel @Inject constructor(
             is LicenseIntent.NextStepClicked -> handleNextStep()
             is LicenseIntent.BackStepClicked -> handleBackStep()
             is LicenseIntent.Submit -> submit(intent.frontBytes, intent.backBytes)
-            is LicenseIntent.TriggerAutoApprove -> triggerAutoApprove()
             is LicenseIntent.RefreshStatus -> checkLicenseStatus()
         }
     }
@@ -81,7 +80,6 @@ class LicenseViewModel @Inject constructor(
             LicenseStep.SELFIE -> updateState { it.copy(currentStep = LicenseStep.EHLIYET) }
             LicenseStep.ONAY -> {
                 if (current.status == "REJECTED") {
-                    licenseRepository.clearLicenseId()
                     // Reset everything to let them re-submit
                     updateState {
                         it.copy(
@@ -92,7 +90,7 @@ class LicenseViewModel @Inject constructor(
                             frontImageUrl = null,
                             backImageUrl = null,
                             status = "NOT_SUBMITTED",
-                            licenseId = null
+                            rejectReason = null
                         )
                     }
                 } else if (current.status != "APPROVED") {
@@ -110,37 +108,23 @@ class LicenseViewModel @Inject constructor(
             _uiState.update { it.copy(isLoading = true) }
             licenseRepository.getLicenseStatus()
                 .onSuccess { response ->
-                    val savedId = licenseRepository.getLicenseId()
                     _uiState.update {
                         it.copy(
                             isLoading = false,
                             status = response.status,
                             frontImageUrl = response.frontImageUrl,
                             backImageUrl = response.backImageUrl,
-                            licenseId = savedId ?: it.licenseId
+                            rejectReason = response.rejectReason
                         )
                     }
                     if (response.status == "APPROVED" || response.status == "UNDER_REVIEW" || response.status == "REJECTED") {
                         updateState { it.copy(currentStep = LicenseStep.ONAY) }
-                        // Fallback resolver if local storage is missing the ID
-                        if (response.status == "UNDER_REVIEW" && savedId == null) {
-                            fetchMyLicenseId()
-                        }
                     }
                 }
                 .onFailure { error ->
                     _uiState.update { it.copy(isLoading = false) }
                     _effect.send(LicenseEffect.ShowError(error.message ?: "Durum sorgulanamadı."))
                 }
-        }
-    }
-
-    private fun fetchMyLicenseId() {
-        viewModelScope.launch {
-            licenseRepository.getMyLicenseId().onSuccess { id ->
-                licenseRepository.saveLicenseId(id)
-                _uiState.update { it.copy(licenseId = id) }
-            }
         }
     }
 
@@ -152,14 +136,13 @@ class LicenseViewModel @Inject constructor(
             _uiState.update { it.copy(isLoading = true) }
             licenseRepository.uploadLicense(frontBytes, backBytes)
                 .onSuccess { response ->
-                    licenseRepository.saveLicenseId(response.id)
                     _uiState.update {
                         it.copy(
                             isLoading = false,
                             status = response.status,
-                            licenseId = response.id,
                             frontImageUrl = response.frontImageUrl,
                             backImageUrl = response.backImageUrl,
+                            rejectReason = response.rejectReason,
                             currentStep = LicenseStep.ONAY
                         )
                     }
@@ -168,33 +151,6 @@ class LicenseViewModel @Inject constructor(
                 .onFailure { error ->
                     _uiState.update { it.copy(isLoading = false) }
                     _effect.send(LicenseEffect.ShowError(error.message ?: "Ehliyet yükleme başarısız."))
-                }
-        }
-    }
-
-    private fun triggerAutoApprove() {
-        val id = _uiState.value.licenseId ?: return
-        viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
-            licenseRepository.adminApproveLicense(id)
-                .onSuccess { response ->
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            status = response.status
-                        )
-                    }
-                    updateState { it } // Re-evaluate state
-                }
-                .onFailure {
-                    // Local demo fallback if the remote admin endpoint returns 403 Forbidden
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            status = "APPROVED"
-                        )
-                    }
-                    updateState { it }
                 }
         }
     }

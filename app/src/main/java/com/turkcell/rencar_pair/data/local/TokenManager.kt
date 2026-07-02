@@ -12,7 +12,6 @@ class TokenManager @Inject constructor(context: Context) {
     companion object {
         private const val KEY_ACCESS_TOKEN = "access_token"
         private const val KEY_REFRESH_TOKEN = "refresh_token"
-        private const val KEY_LICENSE_ID = "license_id"
     }
 
     fun saveTokens(accessToken: String, refreshToken: String) {
@@ -35,20 +34,7 @@ class TokenManager @Inject constructor(context: Context) {
         prefs.edit().apply {
             remove(KEY_ACCESS_TOKEN)
             remove(KEY_REFRESH_TOKEN)
-            remove(KEY_LICENSE_ID)
             apply()
         }
-    }
-
-    fun saveLicenseId(licenseId: String) {
-        prefs.edit().putString(KEY_LICENSE_ID, licenseId).apply()
-    }
-
-    fun getLicenseId(): String? {
-        return prefs.getString(KEY_LICENSE_ID, null)
-    }
-
-    fun clearLicenseId() {
-        prefs.edit().remove(KEY_LICENSE_ID).apply()
     }
 }

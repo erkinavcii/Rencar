@@ -9,7 +9,4 @@ interface LicenseRepository {
     suspend fun getLicenseStatus(): Result<LicenseStatusResponseDto>
     suspend fun adminApproveLicense(id: String): Result<AdminLicenseResponseDto>
     suspend fun getMyLicenseId(): Result<String>
-    fun saveLicenseId(id: String)
-    fun getLicenseId(): String?
-    fun clearLicenseId()
 }
