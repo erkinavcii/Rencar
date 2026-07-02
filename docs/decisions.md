@@ -54,7 +54,40 @@
 
 - Bağımlılık: `androidx.navigation:navigation-compose` (version catalog: `navigationCompose`).
 
-- Uygulama: Tek `NavHost` (`ui/navigation/RencarNavHost.kt`) Auth grafiğini barındırır (başlangıç hedefi Login). Navigasyon MVI ile uyumlu kurulur: ViewModel'de navigasyon API'si yoktur; navigasyon `Intent → Effect` üzerinden akar, `Route` Effect'i tüketip `NavHost`'tan gelen lambda'ları çağırır.
+- Uygulama: Tek `NavHost` (`ui/navigation/RencarNavHost.kt`) tüm grafı barındırır; başlangıç hedefi `onboarding` rotasıdır. Navigasyon MVI ile uyumlu kurulur: ViewModel'de navigasyon API'si yoktur; navigasyon `Intent → Effect` üzerinden akar, `Route` Effect'i tüketip `NavHost`'tan gelen lambda'ları çağırır.
+
+
+### Font Sistemi
+
+- Seçim: **Bundled TTF** (`res/font/`) — geçici olarak `FontFamily.Default` placeholder kullanılıyor.
+
+- Son Güncelleme Tarihi: 02.07.2026
+
+- Fontlar: **Sora** (Display/Heading) + **Plus Jakarta Sans** (Body/UI).
+
+- Geçiş Adımı: https://fonts.google.com adresinden Sora ve Plus Jakarta Sans TTF dosyaları indirilip `res/font/` altına eklenmeli; `Type.kt` içindeki `FontFamily.Default` referansları `FontFamily(Font(R.font.sora_extrabold, FontWeight.ExtraBold), ...)` ile değiştirilmeli.
+
+- Neden Google Fonts API kullanılmadı: `ui-text-google-fonts:1.7.2`, `com_google_android_gms_fonts_certs` resource'unu bundlelamıyor; manuel sertifika dosyası gerektiriyor. Sertifika byte dizilerini §2.2 kuralı gereği uydurmak yasak olduğundan TTF yaklaşımına geçildi.
+
+
+### Tema Renk Sistemi
+
+- Karar: **Dynamic Color devre dışı**; Rencar renk tokenları (`docs/design/00-color-system.md`) birebir `MaterialTheme` `ColorScheme` slotlarına haritalandı.
+
+- Son Güncelleme Tarihi: 02.07.2026
+
+- Sebep: Android 12+ dynamic color, Rencar marka renklerini bozar. Rencar UI tasarımı iki sabit renk şeması (light/dark) üzerine kuruludur.
+
+
+### Splash / Onboarding Ekranı
+
+- Karar: MVI mimarisi; repository gerektirmez (saf UI navigasyon ekranı).
+
+- Son Güncelleme Tarihi: 02.07.2026
+
+- Pager altyapısı: 3 sayfa gostergesi ile kuruldu; yalnızca 1. sayfa tasarımda mevcut olduğundan (§2.2) diğer sayfalar tasarım geldiğinde eklenir.
+
+- Başlangıç hedefi: `RencarNavHost` içinde `onboarding` rotası.
 
 
 ### Sunum Katmanı Mimarisi
