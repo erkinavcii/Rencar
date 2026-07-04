@@ -29,6 +29,7 @@ sealed interface LicenseIntent {
     data object NextStepClicked : LicenseIntent
     data object BackStepClicked : LicenseIntent
     data object RefreshStatus : LicenseIntent
+    data object MockBypassApprove : LicenseIntent // Dummy bypass for demo presentation
 }
 
 sealed interface LicenseEffect {

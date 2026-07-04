@@ -487,6 +487,27 @@ fun LicenseScreen(
             }
 
             // Bottom Action Button
+            if (state.currentStep == LicenseStep.ONAY && state.status == "REJECTED") {
+                Button(
+                    onClick = { onIntent(LicenseIntent.MockBypassApprove) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = SuccessDefault,
+                        contentColor = Color.White
+                    )
+                ) {
+                    Text(
+                        text = "Devam Et (Temsili)",
+                        style = titleL,
+                        color = Color.White
+                    )
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+
             val isButtonEnabled = state.isSubmitEnabled && !state.isLoading
             Button(
                 onClick = {
