@@ -33,13 +33,20 @@ class WalletViewModel @Inject constructor(
         when (intent) {
             is WalletIntent.LoadWalletData -> loadAllData()
             is WalletIntent.RefreshWallet -> loadAllData()
-            is WalletIntent.CardNoChanged -> _uiState.update { it.copy(cardNoInput = intent.value) }
+            is WalletIntent.CardNoChanged -> {
+                val raw = intent.value.filter { it.isDigit() }.take(16)
+                val formatted = raw.chunked(4).joinToString(" ")
+                _uiState.update { it.copy(cardNoRaw = raw, cardNoInput = formatted) }
+            }
             is WalletIntent.CardExpiryChanged -> _uiState.update { it.copy(cardExpiryInput = intent.value) }
+            is WalletIntent.CardHolderChanged -> _uiState.update { it.copy(cardHolderInput = intent.value) }
             is WalletIntent.ToggleAddCardDialog -> _uiState.update {
                 it.copy(
                     showAddCardDialog = !it.showAddCardDialog,
                     cardNoInput = "",
-                    cardExpiryInput = ""
+                    cardNoRaw = "",
+                    cardExpiryInput = "",
+                    cardHolderInput = ""
                 )
             }
             is WalletIntent.SubmitAddCard -> submitAddCard()

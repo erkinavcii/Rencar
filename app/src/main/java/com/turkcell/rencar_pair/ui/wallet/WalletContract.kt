@@ -11,8 +11,10 @@ data class WalletUiState(
     val showAddCardDialog: Boolean = false,
     val showLoadBalanceDialog: Boolean = false,
     // Add card inputs
-    val cardNoInput: String = "",
+    val cardNoInput: String = "",           // formatted display (with spaces)
+    val cardNoRaw: String = "",             // digits only
     val cardExpiryInput: String = "",
+    val cardHolderInput: String = "",
     // Load balance inputs
     val loadAmountInput: String = "",
     val selectedCardId: String? = null
@@ -23,8 +25,9 @@ sealed interface WalletIntent {
     data object RefreshWallet : WalletIntent
 
     // Add Card intents
-    data class CardNoChanged(val value: String) : WalletIntent
+    data class CardNoChanged(val value: String) : WalletIntent      // receives raw digits only
     data class CardExpiryChanged(val value: String) : WalletIntent
+    data class CardHolderChanged(val value: String) : WalletIntent
     data object ToggleAddCardDialog : WalletIntent
     data object SubmitAddCard : WalletIntent
 
