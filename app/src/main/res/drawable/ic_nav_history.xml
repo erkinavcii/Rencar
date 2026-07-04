@@ -3,18 +3,17 @@
     android:height="24dp"
     android:viewportWidth="24"
     android:viewportHeight="24">
-    <!-- Clock circle -->
     <path
         android:strokeColor="#000000"
         android:strokeWidth="1.8"
         android:strokeLineCap="round"
         android:fillColor="@android:color/transparent"
-        android:pathData="M12,22c5.52,0 10,-4.48 10,-10S17.52,2 12,2 2,6.48 2,12s4.48,10 10,10z"/>
-    <!-- Clock hands -->
+        android:pathData="M12,8v4l3,2M21,12A9,9 0,1,1 12,3"/>
     <path
         android:strokeColor="#000000"
         android:strokeWidth="1.8"
         android:strokeLineCap="round"
+        android:strokeLineJoin="round"
         android:fillColor="@android:color/transparent"
-        android:pathData="M12,7v5l3,3"/>
+        android:pathData="M21,4v4h-4"/>
 </vector>
