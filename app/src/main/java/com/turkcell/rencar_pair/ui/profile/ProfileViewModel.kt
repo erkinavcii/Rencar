@@ -50,7 +50,12 @@ class ProfileViewModel @Inject constructor(
                 .onSuccess { user ->
                     _uiState.update { it.copy(userName = user.fullName, userPhone = user.phone ?: it.userPhone) }
                 }
-                // Silently ignore network errors — cached data already displayed
+                .onFailure { error ->
+                    val msg = error.message.orEmpty()
+                    if (msg.contains("Unauthorized") || msg.contains("401")) {
+                        logout()
+                    }
+                }
         }
     }
 
