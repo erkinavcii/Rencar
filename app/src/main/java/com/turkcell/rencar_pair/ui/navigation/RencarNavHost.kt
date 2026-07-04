@@ -19,7 +19,7 @@ import com.turkcell.rencar_pair.ui.auth.license.LicenseRoute
 import com.turkcell.rencar_pair.ui.auth.login.LoginRoute
 import com.turkcell.rencar_pair.ui.auth.otp.OtpRoute
 import com.turkcell.rencar_pair.ui.auth.register.RegisterRoute
-import com.turkcell.rencar_pair.ui.home.HomeScreen
+import com.turkcell.rencar_pair.ui.home.HomeRoute
 import com.turkcell.rencar_pair.ui.onboarding.OnboardingRoute
 import com.turkcell.rencar_pair.ui.splash.SplashRoute
 import com.turkcell.rencar_pair.ui.theme.bodyM
@@ -127,8 +127,7 @@ fun RencarNavHost(
         }
 
         composable(ROUTE_HOME) {
-            HomeScreen(
-                tokenManager = tokenManager,
+            HomeRoute(
                 onLogout = {
                     navController.navigate(ROUTE_ONBOARDING) {
                         popUpTo(0) { inclusive = true }
