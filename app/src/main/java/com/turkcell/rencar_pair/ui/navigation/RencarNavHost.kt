@@ -15,7 +15,9 @@ import com.turkcell.rencar_pair.ui.auth.otp.OtpRoute
 import com.turkcell.rencar_pair.ui.auth.register.RegisterRoute
 import com.turkcell.rencar_pair.ui.home.HomeScreen
 import com.turkcell.rencar_pair.ui.onboarding.OnboardingRoute
+import com.turkcell.rencar_pair.ui.splash.SplashRoute
 
+private const val ROUTE_SPLASH     = "splash"
 private const val ROUTE_ONBOARDING = "onboarding"
 private const val ROUTE_LOGIN      = "login"
 private const val ROUTE_OTP        = "otp"
@@ -29,18 +31,23 @@ fun RencarNavHost(
     modifier: Modifier = Modifier,
     navController: NavHostController = rememberNavController(),
 ) {
-    // Auto-start at Home if access token is already available
-    val startDest = if (tokenManager.getAccessToken() != null) {
-        ROUTE_HOME
-    } else {
-        ROUTE_ONBOARDING
-    }
-
     NavHost(
         navController = navController,
-        startDestination = startDest,
+        startDestination = ROUTE_SPLASH,
         modifier = modifier,
     ) {
+        composable(ROUTE_SPLASH) {
+            SplashRoute(
+                onSplashFinished = {
+                    val destination =
+                        if (tokenManager.getAccessToken() != null) ROUTE_HOME else ROUTE_ONBOARDING
+                    navController.navigate(destination) {
+                        popUpTo(ROUTE_SPLASH) { inclusive = true }
+                    }
+                },
+            )
+        }
+
         composable(ROUTE_ONBOARDING) {
             OnboardingRoute(
                 onNavigateToRegister = { navController.navigate(ROUTE_REGISTER) },
