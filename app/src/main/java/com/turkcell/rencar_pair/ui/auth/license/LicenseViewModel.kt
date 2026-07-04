@@ -38,6 +38,12 @@ class LicenseViewModel @Inject constructor(
             is LicenseIntent.BackStepClicked -> handleBackStep()
             is LicenseIntent.Submit -> submit(intent.frontBytes, intent.backBytes)
             is LicenseIntent.RefreshStatus -> checkLicenseStatus()
+            is LicenseIntent.MockBypassApprove -> {
+                viewModelScope.launch {
+                    _uiState.update { it.copy(status = "APPROVED") }
+                    _effect.send(LicenseEffect.NavigateToNext)
+                }
+            }
         }
     }
 

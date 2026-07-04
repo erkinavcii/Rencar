@@ -8,10 +8,12 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.turkcell.rencar_pair.data.local.TokenManager
 import com.turkcell.rencar_pair.ui.auth.license.LicenseRoute
 import com.turkcell.rencar_pair.ui.auth.login.LoginRoute
 import com.turkcell.rencar_pair.ui.auth.otp.OtpRoute
 import com.turkcell.rencar_pair.ui.auth.register.RegisterRoute
+import com.turkcell.rencar_pair.ui.home.HomeScreen
 import com.turkcell.rencar_pair.ui.onboarding.OnboardingRoute
 
 private const val ROUTE_ONBOARDING = "onboarding"
@@ -19,15 +21,24 @@ private const val ROUTE_LOGIN      = "login"
 private const val ROUTE_OTP        = "otp"
 private const val ROUTE_REGISTER   = "register"
 private const val ROUTE_LICENSE    = "license"
+private const val ROUTE_HOME       = "home"
 
 @Composable
 fun RencarNavHost(
+    tokenManager: TokenManager,
     modifier: Modifier = Modifier,
     navController: NavHostController = rememberNavController(),
 ) {
+    // Auto-start at Home if access token is already available
+    val startDest = if (tokenManager.getAccessToken() != null) {
+        ROUTE_HOME
+    } else {
+        ROUTE_ONBOARDING
+    }
+
     NavHost(
         navController = navController,
-        startDestination = ROUTE_ONBOARDING,
+        startDestination = startDest,
         modifier = modifier,
     ) {
         composable(ROUTE_ONBOARDING) {
@@ -51,7 +62,7 @@ fun RencarNavHost(
         ) {
             OtpRoute(
                 onNavigateToHome = { role ->
-                    val destination = if (role == "PENDING") ROUTE_LICENSE else ROUTE_ONBOARDING
+                    val destination = if (role == "PENDING") ROUTE_LICENSE else ROUTE_HOME
                     navController.navigate(destination) {
                         popUpTo(0) { inclusive = true }
                     }
@@ -73,13 +84,23 @@ fun RencarNavHost(
         composable(ROUTE_LICENSE) {
             LicenseRoute(
                 onNavigateToNext = {
-                    navController.navigate(ROUTE_ONBOARDING) {
+                    navController.navigate(ROUTE_HOME) {
                         popUpTo(0) { inclusive = true }
                     }
                 },
                 onBack = { navController.popBackStack() }
             )
         }
+
+        composable(ROUTE_HOME) {
+            HomeScreen(
+                tokenManager = tokenManager,
+                onLogout = {
+                    navController.navigate(ROUTE_ONBOARDING) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                }
+            )
+        }
     }
 }
-
