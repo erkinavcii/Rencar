@@ -1008,9 +1008,22 @@ private fun enableLocationComponent(
     locationComponent.isLocationComponentEnabled = true
     locationComponent.renderMode = RenderMode.NORMAL
 
+    val engine = locationComponent.locationEngine
+
+    // Yeni bir GPS fix'i gelene kadar ekranda sonsuza dek "Konumunuz araniyor..."
+    // takili kalmamasi icin, sistemde onbellekte zaten bulunan son bilinen konum
+    // (varsa) hemen kullanilir; ardindan canli guncellemeler dinlenmeye devam eder.
+    engine?.getLastLocation(object : LocationEngineCallback<LocationEngineResult> {
+        override fun onSuccess(result: LocationEngineResult) {
+            result.lastLocation?.let(onLocationUpdate)
+        }
+
+        override fun onFailure(exception: Exception) = Unit
+    })
+
     // "En yakin araci bul" ve alt karttaki gercek mesafe/sure gosterimi icin canli
     // kullanici konumu gerekiyor; bu callback her yeni GPS guncellemesinde tetiklenir.
-    locationComponent.locationEngine?.requestLocationUpdates(
+    engine?.requestLocationUpdates(
         highAccuracyRequest,
         object : LocationEngineCallback<LocationEngineResult> {
             override fun onSuccess(result: LocationEngineResult) {
