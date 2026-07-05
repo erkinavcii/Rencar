@@ -26,6 +26,7 @@ import com.turkcell.rencar_pair.ui.theme.bodyM
 import com.turkcell.rencar_pair.ui.theme.headingXL
 import com.turkcell.rencar_pair.ui.profile.ProfileRoute
 import com.turkcell.rencar_pair.ui.reservation.ReservationRoute
+import com.turkcell.rencar_pair.ui.activerental.ActiveRentalRoute
 import com.turkcell.rencar_pair.ui.vehiclecondition.VehicleConditionRoute
 import com.turkcell.rencar_pair.ui.wallet.WalletRoute
 
@@ -41,6 +42,7 @@ private const val ROUTE_HISTORY    = "history"
 private const val ROUTE_PROFILE    = "profile"
 private const val ROUTE_RESERVATION = "reservation"
 private const val ROUTE_VEHICLE_CONDITION = "vehicle-condition"
+private const val ROUTE_ACTIVE_RENTAL = "active-rental"
 
 @Composable
 fun RencarNavHost(
@@ -176,6 +178,29 @@ fun RencarNavHost(
             ),
         ) {
             VehicleConditionRoute(
+                onBack = { navController.popBackStack() },
+                onNavigateToActiveRental = { rentalId, vehicleId, brand, model, plate, pricePerDay ->
+                    navController.navigate(
+                        "$ROUTE_ACTIVE_RENTAL/$rentalId/$vehicleId/$brand/$model/$plate/$pricePerDay",
+                    ) {
+                        popUpTo(ROUTE_HOME)
+                    }
+                },
+            )
+        }
+
+        composable(
+            route = "$ROUTE_ACTIVE_RENTAL/{rentalId}/{vehicleId}/{brand}/{model}/{plate}/{pricePerDay}",
+            arguments = listOf(
+                navArgument("rentalId") { type = NavType.StringType },
+                navArgument("vehicleId") { type = NavType.StringType },
+                navArgument("brand") { type = NavType.StringType },
+                navArgument("model") { type = NavType.StringType },
+                navArgument("plate") { type = NavType.StringType },
+                navArgument("pricePerDay") { type = NavType.StringType },
+            ),
+        ) {
+            ActiveRentalRoute(
                 onBack = { navController.popBackStack() },
             )
         }

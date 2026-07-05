@@ -17,6 +17,18 @@ class RentalRepositoryImpl @Inject constructor(
         response.body() ?: error("Sunucudan bos yanit alindi.")
     }
 
+    override suspend fun getRentalDetails(rentalId: String): Result<RentalResponseDto> = runCatching {
+        val response = rentalService.getRentalDetails(rentalId)
+        if (!response.isSuccessful) error(response.apiMessage())
+        response.body() ?: error("Sunucudan bos yanit alindi.")
+    }
+
+    override suspend fun returnVehicle(rentalId: String): Result<RentalResponseDto> = runCatching {
+        val response = rentalService.returnVehicle(rentalId)
+        if (!response.isSuccessful) error(response.apiMessage())
+        response.body() ?: error("Sunucudan bos yanit alindi.")
+    }
+
     // API hata body'sindeki "message" alanini parse eder.
     private fun Response<*>.apiMessage(): String {
         val bodyString = errorBody()?.string()

@@ -61,6 +61,14 @@ import com.turkcell.rencar_pair.ui.theme.titleS
 @Composable
 fun VehicleConditionRoute(
     onBack: () -> Unit,
+    onNavigateToActiveRental: (
+        rentalId: String,
+        vehicleId: String,
+        brand: String,
+        model: String,
+        plate: String,
+        pricePerDay: Double,
+    ) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: VehicleConditionViewModel = hiltViewModel(),
 ) {
@@ -70,12 +78,15 @@ fun VehicleConditionRoute(
     LaunchedEffect(Unit) {
         viewModel.effect.collect { effect ->
             when (effect) {
-                is VehicleConditionEffect.NavigateToActiveRental -> {
-                    // Kiralama Aktif ekrani henuz eklenmedi (siradaki adimda gelecek);
-                    // simdilik akisin devam ettigini bildirip geri donuyoruz.
-                    snackbarHostState.showSnackbar("Kiralama başladı. Yolculuk ekranı bir sonraki adımda eklenecek.")
-                    onBack()
-                }
+                is VehicleConditionEffect.NavigateToActiveRental ->
+                    onNavigateToActiveRental(
+                        effect.rentalId,
+                        effect.vehicleId,
+                        effect.brand,
+                        effect.model,
+                        effect.plate,
+                        effect.pricePerDay,
+                    )
             }
         }
     }

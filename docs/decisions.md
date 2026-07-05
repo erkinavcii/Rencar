@@ -251,4 +251,25 @@
 
 - Akış: 4 yönün tamamı işaretlenmeden "Kiralamayı Başlat" butonu pasif kalıyor (buton etiketinde kalan foto sayısı gösteriliyor). Bu ekranda backend'e herhangi bir çağrı yapılmıyor — kiralama zaten `POST /rentals` ile Rezervasyon adımında oluşturulmuş durumda (`RentalResponseDto.status` sunucuda zaten ACTIVE); bu ekran yalnızca istemci tarafında bir "hazır mısın" kontrolü.
 
-- Geçici Uç Nokta (Sıradaki Adımda Değişecek): "Kiralamayı Başlat" butonu şu an "Kiralama Aktif" (canlı yolculuk) ekranına gitmiyor — o ekran henüz yapılmadı. Bunun yerine geçici olarak bir bilgi snackbar'ı gösterip bir önceki ekrana (Home) dönüyor. Bu, "Rezerve Et"in gerçek ekrana bağlanana kadar no-op kalması ile aynı geçici desendir; bir sonraki adımda `VehicleConditionEffect.NavigateToActiveRental` gerçek "Kiralama Aktif" rotasına bağlanacak.
+- Güncelleme (06.07.2026): "Kiralamayı Başlat" artık gerçekten "Kiralama Aktif" ekranına yönlendiriyor; bkz. aşağıdaki "Kiralama Aktif Ekranı" kararı.
+
+
+### Kiralama Aktif Ekranı (Canlı Yolculuk)
+
+- Karar: `ui/activerental/` altında yeni bir ekran eklendi (`ActiveRentalContract.kt`, `ActiveRentalViewModel.kt`, `ActiveRentalScreen.kt`). Araç Durumu ekranında "Kiralamayı Başlat" artık bu ekrana yönlendiriyor.
+
+- Son Güncelleme Tarihi: 06.07.2026
+
+- Veri Katmanı: `RentalRepository`'ye daha önce yalnızca `RentalService`'te tanımlı olup kullanılmayan `getRentalDetails(id)` ve `returnVehicle(id)` metotları eklendi (`VehicleRepository` ile aynı desen). Ekran açılışında `getRentalDetails` ile gerçek `startDate` çekiliyor; "Kiralamayı Bitir" gerçek `POST /rentals/{id}/return` çağrısını tetikliyor ve dönen gerçek `totalPrice` kullanılıyor.
+
+- Geçen Süre: Gerçek `rental.startDate` (ISO 8601, UTC) `SimpleDateFormat` ile parse edilip şu anki zamanla farkı alınarak hesaplanıyor; her saniye `ActiveRentalIntent.Tick` ile yeniden hesaplanıyor. `java.time` kullanılmadı (minSdk 24, desugaring yok — Rezervasyon ekranındaki kararla aynı gerekçe).
+
+- Anlık Ücret: Backend'de anlık/canlı bir ücret alanı olmadığından, gerçek `pricePerDay`'den orantılı türetiliyor (`pricePerDay / 1440 * geçenDakika`) — VehicleDetailBottomSheet ve Rezervasyon ekranındaki ile aynı, uydurma olmayan orantılı hesaplama yaklaşımı.
+
+- Mesafe: Backend'de mesafe/rota verisi hiç yok. Bu ekran açıkken gerçek GPS güncellemeleri arasında Haversine ile hesaplanan gerçek mesafe biriktiriliyor (uygulama oturumuna özgü; ekrandan çıkılıp tekrar girilirse veya süreç öldürülürse sıfırlanır — kalıcı/sunucu tarafı bir mesafe kaydı yok). Kat edilen yolun haritada çizgi olarak gösterilmesi (mockup'taki noktalı iz) bu adımda kapsam dışı bırakıldı; yalnızca canlı konum (mavi nokta) gösteriliyor.
+
+- Kilitle/Aç: `RentalService`'te karşılığı olan bir uç nokta yok; buton mevcut "Kilidi Aç" kararıyla tutarlı şekilde no-op bırakıldı.
+
+- Geçici Davranış (Sıradaki Adımda Değişecek): "Kiralamayı Bitir" başarılı olduğunda "Yolculuk Tamamlandı" (ödeme özeti) ekranı henüz yapılmadığından, gerçek toplam ücreti içeren bir bilgi snackbar'ı gösterilip Home'a dönülüyor; bir sonraki adımda `ActiveRentalEffect.NavigateToTripSummary` gerçek ekrana bağlanacak.
+
+- Bilinen Basitleştirme: Harita bileşeni (`ActiveRentalMapView`), Ana Harita'daki `RencarMapView`/`enableLocationComponent` ile neredeyse aynı kurulumu tekrar ediyor (ayrı dosyada, ortak bir bileşene çıkarılmadı); zaman baskısıyla bilinçli bir kod tekrarı, ileride ortak bir `ui/common/` haritakomponentine refactor edilebilir.
