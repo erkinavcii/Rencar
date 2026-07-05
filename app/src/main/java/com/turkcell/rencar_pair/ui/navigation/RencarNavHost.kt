@@ -129,11 +129,6 @@ fun RencarNavHost(
 
         composable(ROUTE_HOME) {
             HomeRoute(
-                onLogout = {
-                    navController.navigate(ROUTE_ONBOARDING) {
-                        popUpTo(0) { inclusive = true }
-                    }
-                },
                 onTabSelected = handleTabNavigation
             )
         }

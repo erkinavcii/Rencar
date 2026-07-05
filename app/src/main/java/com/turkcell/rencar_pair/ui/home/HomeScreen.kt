@@ -9,6 +9,7 @@ import android.graphics.Paint
 import android.graphics.RectF
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -30,17 +31,26 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.DirectionsCar
+import androidx.compose.material.icons.filled.EventSeat
+import androidx.compose.material.icons.filled.LocalGasStation
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -58,7 +68,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -71,7 +83,9 @@ import com.turkcell.rencar_pair.BuildConfig
 import com.turkcell.rencar_pair.ui.navigation.NavigationTab
 import com.turkcell.rencar_pair.ui.navigation.RencarBottomNavigation
 import com.turkcell.rencar_pair.ui.theme.BackgroundLight
+import com.turkcell.rencar_pair.ui.theme.BorderDefaultLight
 import com.turkcell.rencar_pair.ui.theme.BorderStrongDark
+import com.turkcell.rencar_pair.ui.theme.BorderSubtleDark
 import com.turkcell.rencar_pair.ui.theme.CategoryEkonomik
 import com.turkcell.rencar_pair.ui.theme.CategoryKonfor
 import com.turkcell.rencar_pair.ui.theme.CategorySuv
@@ -79,22 +93,36 @@ import com.turkcell.rencar_pair.ui.theme.CategoryKullanimdaLight
 import com.turkcell.rencar_pair.ui.theme.CategoryKullanımdaDark
 import com.turkcell.rencar_pair.ui.theme.Primary
 import com.turkcell.rencar_pair.ui.theme.PrimaryOnDark
+import com.turkcell.rencar_pair.ui.theme.SuccessBackgroundDark
+import com.turkcell.rencar_pair.ui.theme.SuccessBackgroundLight
+import com.turkcell.rencar_pair.ui.theme.SuccessDefault
+import com.turkcell.rencar_pair.ui.theme.SuccessStrong
+import com.turkcell.rencar_pair.ui.theme.SuccessStrongDark
+import com.turkcell.rencar_pair.ui.theme.SurfaceDark
 import com.turkcell.rencar_pair.ui.theme.SurfaceElevatedDark
 import com.turkcell.rencar_pair.ui.theme.SurfaceLight
 import com.turkcell.rencar_pair.ui.theme.TextHintDark
 import com.turkcell.rencar_pair.ui.theme.TextOnPrimary
+import com.turkcell.rencar_pair.ui.theme.TextPrimaryDark
 import com.turkcell.rencar_pair.ui.theme.TextSecondaryDark
 import com.turkcell.rencar_pair.ui.theme.TextTertiaryDark
 import com.turkcell.rencar_pair.ui.theme.bodyS
 import com.turkcell.rencar_pair.ui.theme.headingL
 import com.turkcell.rencar_pair.ui.theme.labelM
+import com.turkcell.rencar_pair.ui.theme.labelS
+import com.turkcell.rencar_pair.ui.theme.labelXS
+import com.turkcell.rencar_pair.ui.theme.priceL
+import com.turkcell.rencar_pair.ui.theme.statValue
 import com.turkcell.rencar_pair.ui.theme.titleL
+import com.turkcell.rencar_pair.ui.theme.titleXS
 import org.maplibre.android.MapLibre
 import org.maplibre.android.WellKnownTileServer
 import org.maplibre.android.annotations.IconFactory
+import org.maplibre.android.annotations.Marker
 import org.maplibre.android.annotations.MarkerOptions
 import org.maplibre.android.camera.CameraUpdateFactory
 import org.maplibre.android.geometry.LatLng as MapLibreLatLng
+import org.maplibre.android.geometry.LatLngBounds
 import org.maplibre.android.location.LocationComponentActivationOptions
 import org.maplibre.android.location.engine.LocationEngineRequest
 import org.maplibre.android.location.modes.CameraMode
@@ -108,7 +136,6 @@ private const val MAP_STYLE_URL = "https://api.maptiler.com/maps/streets-v4/styl
 
 @Composable
 fun HomeRoute(
-    onLogout: () -> Unit,
     onTabSelected: (NavigationTab) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: HomeViewModel = hiltViewModel(),
@@ -116,6 +143,7 @@ fun HomeRoute(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     var mapLibreMap by remember { mutableStateOf<MapLibreMap?>(null) }
+    var markerVehicleIds by remember { mutableStateOf<Map<Marker, String>>(emptyMap()) }
     val snackbarHostState = remember { SnackbarHostState() }
     val isDark = isDarkHome()
 
@@ -147,7 +175,6 @@ fun HomeRoute(
     LaunchedEffect(Unit) {
         viewModel.effect.collect { effect ->
             when (effect) {
-                HomeEffect.NavigateToOnboarding -> onLogout()
                 HomeEffect.RequestLocationPermission -> permissionLauncher.launch(
                     arrayOf(
                         Manifest.permission.ACCESS_FINE_LOCATION,
@@ -177,7 +204,25 @@ fun HomeRoute(
 
     LaunchedEffect(uiState.visibleVehicles, mapLibreMap) {
         val map = mapLibreMap ?: return@LaunchedEffect
-        renderVehicleMarkers(context, map, uiState.visibleVehicles, isDark)
+        markerVehicleIds = renderVehicleMarkers(context, map, uiState.visibleVehicles, isDark)
+    }
+
+    LaunchedEffect(uiState.vehicles, mapLibreMap) {
+        val map = mapLibreMap ?: return@LaunchedEffect
+        fitCameraToVehicles(context, map, uiState.vehicles)
+    }
+
+    LaunchedEffect(mapLibreMap) {
+        val map = mapLibreMap ?: return@LaunchedEffect
+        map.setOnMarkerClickListener { marker ->
+            val vehicleId = markerVehicleIds[marker]
+            if (vehicleId != null) {
+                viewModel.onIntent(HomeIntent.VehicleSelected(vehicleId))
+                true
+            } else {
+                false
+            }
+        }
     }
 
     HomeScreen(
@@ -232,11 +277,17 @@ fun HomeScreen(
                     .statusBarsPadding(),
             ) {
                 Spacer(modifier = Modifier.height(16.dp))
-                SearchBar(
-                    query = state.searchQuery,
-                    onQueryChange = { onIntent(HomeIntent.SearchQueryChanged(it)) },
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
                     modifier = Modifier.padding(horizontal = 18.dp),
-                )
+                ) {
+                    SearchBar(
+                        query = state.searchQuery,
+                        onQueryChange = { onIntent(HomeIntent.SearchQueryChanged(it)) },
+                        modifier = Modifier.weight(1f),
+                    )
+                }
 
                 Spacer(modifier = Modifier.weight(1f))
 
@@ -266,11 +317,336 @@ fun HomeScreen(
             }
         }
     }
+
+    state.selectedVehicle?.let { vehicle ->
+        VehicleDetailBottomSheet(
+            vehicle = vehicle,
+            onDismiss = { onIntent(HomeIntent.VehicleDetailDismissed) },
+        )
+    }
 }
 
 @Composable
 private fun isDarkHome(): Boolean =
     MaterialTheme.colorScheme.background != Color(BackgroundLight.value)
+
+// TODO: Gercek API arac telemetri alanlarini (yakit, menzil, vites, koltuk) saglamiyor.
+// Backend bu alanlari eklediginde bu sabitler kaldirilip gercek degerlerle degistirilecek.
+private const val PLACEHOLDER_FUEL_PERCENT = 72
+private const val PLACEHOLDER_RANGE_KM = 480
+private const val PLACEHOLDER_TRANSMISSION = "Manuel"
+private const val PLACEHOLDER_SEAT_COUNT = 5
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun VehicleDetailBottomSheet(
+    vehicle: VehicleMarker,
+    onDismiss: () -> Unit,
+) {
+    val isDark = isDarkHome()
+    val sheetColor = if (isDark) SurfaceDark else SurfaceLight
+    val cardColor = if (isDark) Color(0xFF1F262F) else Color(0xFFF4F6F9)
+    val labelColor = if (isDark) TextTertiaryDark else MaterialTheme.colorScheme.onSurfaceVariant
+    val valueColor = if (isDark) TextPrimaryDark else MaterialTheme.colorScheme.onSurface
+    val dividerColor = if (isDark) BorderSubtleDark else MaterialTheme.colorScheme.outlineVariant
+    val trackColor = if (isDark) Color(0xFF2C333D) else BorderDefaultLight
+    val fuelColor = if (isDark) SuccessStrongDark else SuccessDefault
+    val reserveColor = if (isDark) PrimaryOnDark else Primary
+    val badgeBg = if (isDark) SuccessBackgroundDark else SuccessBackgroundLight
+    val badgeText = if (isDark) SuccessStrongDark else SuccessStrong
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = sheetColor,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 22.dp)
+                .padding(bottom = 30.dp),
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Text(text = "${vehicle.brand} ${vehicle.model}", style = headingL, color = valueColor)
+                if (!vehicle.inUse) {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(7.dp))
+                            .background(badgeBg)
+                            .padding(horizontal = 8.dp, vertical = 3.dp),
+                    ) {
+                        Text(text = "MÜSAİT", style = labelXS, color = badgeText)
+                    }
+                }
+            }
+
+            Text(
+                text = "${vehicle.plate} · yakınlarda",
+                style = bodyS,
+                color = labelColor,
+                modifier = Modifier.padding(top = 4.dp),
+            )
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            VehiclePhoto(
+                vehicle = vehicle,
+                cardColor = cardColor,
+                placeholderTint = labelColor,
+            )
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(cardColor)
+                        .padding(12.dp),
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.LocalGasStation,
+                            contentDescription = null,
+                            tint = labelColor,
+                            modifier = Modifier.size(14.dp),
+                        )
+                        Text(text = "Yakıt", style = labelS, color = labelColor)
+                    }
+                    Text(
+                        text = "%$PLACEHOLDER_FUEL_PERCENT",
+                        style = statValue,
+                        color = valueColor,
+                        modifier = Modifier.padding(top = 5.dp),
+                    )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(5.dp)
+                            .padding(top = 7.dp)
+                            .clip(RoundedCornerShape(3.dp))
+                            .background(trackColor),
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth(PLACEHOLDER_FUEL_PERCENT / 100f)
+                                .height(5.dp)
+                                .clip(RoundedCornerShape(3.dp))
+                                .background(fuelColor),
+                        )
+                    }
+                }
+
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(cardColor)
+                        .padding(12.dp),
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Speed,
+                            contentDescription = null,
+                            tint = labelColor,
+                            modifier = Modifier.size(14.dp),
+                        )
+                        Text(text = "Menzil", style = labelS, color = labelColor)
+                    }
+                    Text(
+                        text = "~$PLACEHOLDER_RANGE_KM km",
+                        style = statValue,
+                        color = valueColor,
+                        modifier = Modifier.padding(top = 5.dp),
+                    )
+                    Text(
+                        text = "Dolu depo",
+                        style = labelS,
+                        color = labelColor,
+                        modifier = Modifier.padding(top = 9.dp),
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(9.dp),
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(cardColor)
+                        .padding(horizontal = 12.dp, vertical = 11.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Settings,
+                        contentDescription = null,
+                        tint = valueColor,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Column {
+                        Text(text = "Vites", style = labelS, color = labelColor)
+                        Text(text = PLACEHOLDER_TRANSMISSION, style = titleXS, color = valueColor)
+                    }
+                }
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(9.dp),
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(cardColor)
+                        .padding(horizontal = 12.dp, vertical = 11.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.EventSeat,
+                        contentDescription = null,
+                        tint = valueColor,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Column {
+                        Text(text = "Koltuk", style = labelS, color = labelColor)
+                        Text(text = "$PLACEHOLDER_SEAT_COUNT kişi", style = titleXS, color = valueColor)
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Backend gunluk fiyat (pricePerDay) donduruyor; tasarim dakika/saat bazli
+            // gosterim istedigi icin gercek gunluk fiyattan turetiliyor (uydurma sabit
+            // degil, gercek pricePerDay'e orantili hesaplama).
+            val pricePerHour = vehicle.pricePerDay / 24.0
+            val pricePerMinute = vehicle.pricePerDay / 1440.0
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 14.dp),
+            ) {
+                Row(verticalAlignment = Alignment.Bottom) {
+                    Text(
+                        text = "₺${"%.2f".format(pricePerMinute).replace('.', ',')}",
+                        style = priceL,
+                        color = valueColor,
+                    )
+                    Text(
+                        text = "/dk",
+                        style = bodyS,
+                        color = labelColor,
+                        modifier = Modifier.padding(start = 4.dp, bottom = 3.dp),
+                    )
+                }
+                Text(
+                    text = "Saatlik ₺${pricePerHour.toInt()}",
+                    style = bodyS,
+                    color = labelColor,
+                )
+            }
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(1.dp)
+                    .background(dividerColor),
+            )
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            Row(horizontalArrangement = Arrangement.spacedBy(11.dp)) {
+                OutlinedButton(
+                    onClick = { /* TODO: gercek rezervasyon akisi (POST /rentals) sonraki adimda */ },
+                    modifier = Modifier
+                        .width(130.dp)
+                        .height(56.dp),
+                    shape = RoundedCornerShape(18.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.7.dp, reserveColor),
+                ) {
+                    Text(text = "Rezerve Et", style = titleL, color = reserveColor)
+                }
+                Button(
+                    onClick = { /* TODO: gercek kiralama baslatma akisi sonraki adimda */ },
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(56.dp),
+                    shape = RoundedCornerShape(18.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Primary, contentColor = TextOnPrimary),
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.LockOpen,
+                        contentDescription = null,
+                        tint = TextOnPrimary,
+                        modifier = Modifier.size(20.dp),
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(text = "Kilidi Aç", style = titleL, color = TextOnPrimary)
+                }
+            }
+        }
+    }
+}
+
+// Foto ismi konvansiyonu: res/drawable/car_{marka}_{model}.png (kucuk harf, bosluk -> alt cizgi).
+// Bu isimde bir kaynak eklenirse otomatik gosterilir; eklenmediyse mevcut ikon placeholder'i kalir.
+@Composable
+private fun VehiclePhoto(
+    vehicle: VehicleMarker,
+    cardColor: Color,
+    placeholderTint: Color,
+) {
+    val context = LocalContext.current
+    val resId = remember(vehicle.brand, vehicle.model) {
+        val resourceName = "car_${vehicle.brand}_${vehicle.model}"
+            .lowercase()
+            .replace(" ", "_")
+        context.resources.getIdentifier(resourceName, "drawable", context.packageName)
+            .takeIf { it != 0 }
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(128.dp)
+            .clip(RoundedCornerShape(20.dp))
+            .background(cardColor),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (resId != null) {
+            Image(
+                painter = painterResource(id = resId),
+                contentDescription = "${vehicle.brand} ${vehicle.model}",
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop,
+            )
+        } else {
+            Icon(
+                imageVector = Icons.Default.DirectionsCar,
+                contentDescription = null,
+                tint = placeholderTint,
+                modifier = Modifier.size(48.dp),
+            )
+        }
+    }
+}
 
 @Composable
 private fun SearchBar(
@@ -602,14 +978,39 @@ private fun enableLocationComponent(context: Context, map: MapLibreMap) {
     locationComponent.renderMode = RenderMode.NORMAL
 }
 
+private const val CAMERA_FIT_PADDING_DP = 56
+
+// Sabit Kadikoy merkezi yalnizca veri gelene kadarki nötr baslangic konumudur (bu sirada
+// isLoading spinner haritayi zaten ortuyor); araclar yuklenince kamera hepsini kapsayacak
+// sekilde otomatik kaydirilir.
+private fun fitCameraToVehicles(context: Context, map: MapLibreMap, vehicles: List<VehicleMarker>) {
+    when {
+        vehicles.isEmpty() -> Unit
+        vehicles.size == 1 -> {
+            val point = vehicles.first().position
+            map.animateCamera(
+                CameraUpdateFactory.newLatLngZoom(MapLibreLatLng(point.latitude, point.longitude), 14.0),
+            )
+        }
+        else -> {
+            val bounds = LatLngBounds.Builder().apply {
+                vehicles.forEach { include(MapLibreLatLng(it.position.latitude, it.position.longitude)) }
+            }.build()
+            val paddingPx = (CAMERA_FIT_PADDING_DP * context.resources.displayMetrics.density).toInt()
+            map.animateCamera(CameraUpdateFactory.newLatLngBounds(bounds, paddingPx))
+        }
+    }
+}
+
 private fun renderVehicleMarkers(
     context: Context,
     map: MapLibreMap,
     vehicles: List<VehicleMarker>,
     isDark: Boolean,
-) {
+): Map<Marker, String> {
     map.markers.toList().forEach { map.removeMarker(it) }
     val iconFactory = IconFactory.getInstance(context)
+    val markerToVehicleId = mutableMapOf<Marker, String>()
     vehicles.forEach { vehicle ->
         val color = when {
             vehicle.inUse -> if (isDark) CategoryKullanımdaDark else CategoryKullanimdaLight
@@ -618,12 +1019,14 @@ private fun renderVehicleMarkers(
             else -> CategorySuv
         }
         val bitmap = createPriceMarkerBitmap(vehicle.priceLabel, color.toArgb())
-        map.addMarker(
+        val marker = map.addMarker(
             MarkerOptions()
                 .position(MapLibreLatLng(vehicle.position.latitude, vehicle.position.longitude))
                 .icon(iconFactory.fromBitmap(bitmap)),
         )
+        markerToVehicleId[marker] = vehicle.id
     }
+    return markerToVehicleId
 }
 
 private fun createPriceMarkerBitmap(label: String, backgroundColor: Int): Bitmap {
