@@ -179,3 +179,44 @@
 - Fiyat: Marker'larda gerçek `pricePerDay` değeri "₺{fiyat}/gün" olarak gösteriliyor; tasarımdaki anlık/dakikalık fiyat görünümü ("₺28" vb.) gerçek backend'in günlük kiralama modeliyle uyuşmadığından kullanılmadı.
 
 - Bilinen Sınır: `GET /vehicles` yalnızca AVAILABLE araçları döndürdüğünden (`RENTED`/`MAINTENANCE` sunucu tarafında filtreleniyor), "Kullanımda" durumundaki marker görsel dalı pratikte hiç tetiklenmez; bu, tasarım mockup'ının varsaydığı ama gerçek API'de karşılığı olmayan bir senaryodur.
+
+- Kamera Davranışı: Kamera artık sabit Kadıköy merkezinde kalmıyor; `HomeRoute` içinde `uiState.vehicles` (ham, filtrelenmemiş liste) değiştiğinde tetiklenen bir `LaunchedEffect`, `org.maplibre.android.geometry.LatLngBounds` ile tüm araçları kapsayan sınır kutusunu hesaplayıp `CameraUpdateFactory.newLatLngBounds(bounds, padding)` + `animateCamera` ile kamerayı otomatik kaydırıyor (tek araç varsa `newLatLngZoom` kullanılıyor, liste boşsa dokunulmuyor). Sabit Kadıköy konumu yalnızca veri gelmeden önceki nötr başlangıç noktası olarak korunuyor; bu sırada `isLoading` spinner'ı haritayı zaten örttüğü için kullanıcıya görünmüyor. Filtre değişiminde (`visibleVehicles`) kamera yeniden kaymıyor; yalnızca ham liste ilk kez yüklendiğinde tetikleniyor.
+
+
+### Araç Detay Bottom Sheet
+
+- Karar: Haritadaki bir araç marker'ına tıklandığında tasarımdaki (`Rencar.html`, "Araç Detay") ile birebir uyumlu bir `ModalBottomSheet` açılır.
+
+- Son Güncelleme Tarihi: 05.07.2026
+
+- Marker Tıklama: `MapLibreMap.setOnMarkerClickListener`; `renderVehicleMarkers` artık her çağrıda bir `Map<Marker, String>` (marker → vehicleId) döndürüp Route'ta saklanıyor, tıklamada bu eşleme üzerinden `HomeIntent.VehicleSelected` tetikleniyor.
+
+- Placeholder Alanlar (Geçici, Kullanıcı Onayıyla): Gerçek API (`VehicleResponseDto`) yakıt yüzdesi, menzil, vites tipi, koltuk sayısı ve araç fotoğrafı sağlamıyor. Kullanıcının onayıyla bu alanlar `HomeScreen.kt` içinde sabit placeholder değerlerle (`PLACEHOLDER_FUEL_PERCENT`, `PLACEHOLDER_RANGE_KM`, `PLACEHOLDER_TRANSMISSION`, `PLACEHOLDER_SEAT_COUNT`) dolduruldu; backend bu alanları sağladığında kaldırılıp gerçek değerlerle değiştirilecek.
+
+- Fiyat: Tasarımdaki uydurma "Saatlik ₺180" satırı **eklenmedi** — gerçek backend saatlik/dakikalık fatura desteklemiyor, yanıltıcı olurdu. Yalnızca gerçek `pricePerDay` gösteriliyor.
+
+- "Rezerve Et" / "Kilidi Aç" butonları henüz no-op; gerçek `POST /rentals` akışı (bitiş tarihi seçimi, onay) ayrı bir adımda ele alınacak.
+
+
+### Ana Harita Ekranı — Çıkış Butonu Kaldırıldı
+
+- Karar: Arama çubuğunun yanındaki geçici çıkış (logout) butonu (`LogoutButton`) tamamen kaldırıldı. Bununla birlikte `HomeIntent.Logout`, `HomeEffect.NavigateToOnboarding`, `HomeViewModel.logout()` ve `HomeRoute`'un `onLogout` parametresi de (artık hiçbir çağıran kalmadığından) kod tabanından temizlendi; `HomeViewModel`'in `TokenManager` bağımlılığı da bu nedenle kaldırıldı.
+
+- Son Güncelleme Tarihi: 05.07.2026
+
+- Sebep: `main` dalına merge edilmiş `feature/profile` (PR #11) bu dala çekildi (`git merge origin/main`); gerçek Profil ekranı (`ui/profile/ProfileScreen.kt` + `ProfileViewModel.kt`) kendi bağımsız çıkış akışına (`ProfileIntent.Logout` → `TokenManager.clearTokens()` → `ProfileEffect.NavigateToOnboarding`) zaten sahip. Ana Harita ekranındaki geçici çıkış butonu bu nedenle gereksiz hale geldi ve kaldırıldı.
+
+- Not: `RencarNavHost.kt` içindeki `ROUTE_PROFILE` artık `PlaceholderScreen` değil, gerçek `ProfileRoute`'a bağlı (bu değişiklik `feature/profile` merge'i ile geldi, bu adımda ayrıca yapılmadı).
+
+
+### Ana Harita Ekranı — En Yakın Araç ve Gerçek Mesafe/Süre Gösterimi
+
+- Karar: Alt karttaki sabit "Kadıköy çevresinde · 3 dk uzaklıkta" placeholder'ı kaldırıldı; yerine gerçek kullanıcı GPS konumu ile en yakın aracın gerçek konumu arasında hesaplanan mesafeye dayalı bir gösterim geldi: "En yakın araç ~X dk uzaklıkta" (konum varsa), "Konumunuz aranıyor…" (izin var, konum henüz gelmediyse) veya "Mesafe için konum izni gerekli" (izin yoksa). "En Yakın Aracı Bul" butonu artık gerçekten çalışıyor: konum izni yoksa izin ister, varsa en yakın aracı seçip (detay sheet açılır) kamerayı o araca kaydırır.
+
+- Son Güncelleme Tarihi: 05.07.2026
+
+- Mesafe Hesabı: `HomeUiState.nearestVehicle` / `nearestVehicleDistanceMeters`, kullanıcının `userLocation`'ı (MapLibre `LocationComponent`'in canlı GPS güncellemelerinden `HomeIntent.UserLocationChanged` ile beslenir) ile her aracın gerçek konumu arasında Haversine (küresel düz mesafe) formülüyle hesaplanır — gerçek matematik, uydurma veri değil.
+
+- Süre Tahmini (Yaklaşık, Kullanıcı Onayıyla): Backend'de rota/trafik/ETA endpoint'i olmadığından "kaç dakika uzaklıkta" bilgisi, gerçek mesafenin varsayılan bir ortalama şehir-içi sürüş hızına (**25 km/saat**, `HomeContract.kt` içinde `ASSUMED_AVERAGE_SPEED_KMH`) bölünmesiyle **yaklaşık** olarak türetiliyor. Bu bir tahmindir, gerçek trafik/rota verisi değildir; gerçek bir rota/ETA API'si (ör. OSRM, MapTiler Routing) entegre edilirse bu varsayım kaldırılıp yerine gerçek süre konur.
+
+- Canlı Konum: `enableLocationComponent`, `LocationEngineRequest` üzerinden `locationComponent.locationEngine?.requestLocationUpdates(...)` ile her yeni GPS konumunda `onLocationUpdate` callback'ini tetikler; `HomeRoute` bunu `HomeIntent.UserLocationChanged` olarak ViewModel'e iletir. Yeni bağımlılık gerekmez, mevcut MapLibre location engine API'si kullanılır.
