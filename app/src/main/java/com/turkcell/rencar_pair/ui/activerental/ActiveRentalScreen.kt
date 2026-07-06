@@ -78,6 +78,15 @@ private const val MAP_STYLE_URL = "https://api.maptiler.com/maps/streets-v4/styl
 @Composable
 fun ActiveRentalRoute(
     onBack: () -> Unit,
+    onNavigateToTripSummary: (
+        rentalId: String,
+        brand: String,
+        model: String,
+        plate: String,
+        durationSeconds: Long,
+        distanceMeters: Double,
+        totalPrice: Double,
+    ) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ActiveRentalViewModel = hiltViewModel(),
 ) {
@@ -94,14 +103,16 @@ fun ActiveRentalRoute(
     LaunchedEffect(Unit) {
         viewModel.effect.collect { effect ->
             when (effect) {
-                is ActiveRentalEffect.NavigateToTripSummary -> {
-                    // Yolculuk Tamamlandi ekrani henuz eklenmedi (siradaki adimda gelecek);
-                    // simdilik geri donuyoruz.
-                    snackbarHostState.showSnackbar(
-                        "Kiralama tamamlandı. Toplam ücret: ₺${"%.2f".format(effect.totalPrice)}",
+                is ActiveRentalEffect.NavigateToTripSummary ->
+                    onNavigateToTripSummary(
+                        effect.rentalId,
+                        effect.brand,
+                        effect.model,
+                        effect.plate,
+                        effect.durationSeconds,
+                        effect.distanceMeters,
+                        effect.totalPrice,
                     )
-                    onBack()
-                }
                 is ActiveRentalEffect.ShowError -> snackbarHostState.showSnackbar(effect.message)
             }
         }

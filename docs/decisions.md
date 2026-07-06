@@ -270,6 +270,21 @@
 
 - Kilitle/Aç: `RentalService`'te karşılığı olan bir uç nokta yok; buton mevcut "Kilidi Aç" kararıyla tutarlı şekilde no-op bırakıldı.
 
-- Geçici Davranış (Sıradaki Adımda Değişecek): "Kiralamayı Bitir" başarılı olduğunda "Yolculuk Tamamlandı" (ödeme özeti) ekranı henüz yapılmadığından, gerçek toplam ücreti içeren bir bilgi snackbar'ı gösterilip Home'a dönülüyor; bir sonraki adımda `ActiveRentalEffect.NavigateToTripSummary` gerçek ekrana bağlanacak.
+- Güncelleme (06.07.2026): "Kiralamayı Bitir" artık gerçekten "Yolculuk Tamamlandı" ekranına yönlendiriyor; bkz. aşağıdaki karar.
 
 - Bilinen Basitleştirme: Harita bileşeni (`ActiveRentalMapView`), Ana Harita'daki `RencarMapView`/`enableLocationComponent` ile neredeyse aynı kurulumu tekrar ediyor (ayrı dosyada, ortak bir bileşene çıkarılmadı); zaman baskısıyla bilinçli bir kod tekrarı, ileride ortak bir `ui/common/` haritakomponentine refactor edilebilir.
+
+
+### Yolculuk Tamamlandı Ekranı (Ödeme Özeti) — Zincirin Son Ekranı
+
+- Karar: `ui/tripsummary/` altında yeni bir ekran eklendi (`TripSummaryContract.kt`, `TripSummaryViewModel.kt`, `TripSummaryScreen.kt`). Kiralama Aktif ekranında "Kiralamayı Bitir" başarılı olunca (`POST /rentals/{id}/return` başarılı), artık doğrudan bu ekrana geçiliyor; `ActiveRentalEffect.NavigateToTripSummary` gerçek süre/mesafe/toplam ücreti taşıyor.
+
+- Son Güncelleme Tarihi: 06.07.2026
+
+- Kaldırılan Tasarım Öğeleri (Kullanıcı Onayıyla, Önceki İki Kararla Tutarlı): Tasarımdaki "Kiralama ücreti / Başlangıç ücreti / Hizmet bedeli / İndirim · İLKSÜRÜŞ" fiyat dökümü **eklenmedi** — bunların hiçbiri `RentalResponseDto`'da veya başka bir backend alanında karşılık bulmuyor. Yalnızca gerçek `totalPrice` (return çağrısının döndürdüğü) tek bir "Toplam" satırı olarak gösteriliyor.
+
+- Cüzdan Entegrasyonu (Yeni Stub Genişletmesi): "Öde" butonu gerçek bir ödeme API'sine değil, projede zaten kabul edilmiş fake/stub `WalletRepository`'ye bağlandı. Cüzdan'ın tamamı zaten gerçek bir backend'e sahip değil (`FakeWalletRepository`, sabit `balance = 340.0`, bkz. "Backend Hazır Değilken Veri Katmanı" kararı); bu adımda `WalletRepository`/`FakeWalletRepository`'ye yeni bir `payFromBalance(amount, title)` metodu eklendi (mevcut `loadBalance`'ın ters yönlü karşılığı — bakiyeden düşer, gider işlemi olarak `transactions` listesine ekler, yetersiz bakiyede `Result.failure` döner). Bu, yeni bir backend sözleşmesi uydurmak değildir; zaten onaylı olan fake-katman deseninin genişletilmesidir.
+
+- Kart Bilgisi: "Öde" ekranındaki kart etiketi (`VISA • 4291` vb.) `WalletRepository.getCards()`'tan gerçek (fake ama tutarlı) veriyle çekiliyor; ayrıca hardcoded bir kart metni yazılmadı. "Değiştir" butonu no-op (kart değiştirme akışı kapsam dışı).
+
+- Ödeme Sonrası: Başarılı ödemede Home'a dönülüyor (`popUpTo(0){inclusive=true}` ile geri yığın temizleniyor — Rezervasyon → Araç Durumu → Kiralama Aktif → Yolculuk Tamamlandı zincirine geri dönülemez). Bu, üç ekranlık kiralama akışının (Rezervasyon Onayı → Araç Durumu → Kiralama Aktif → Yolculuk Tamamlandı) son adımıdır.

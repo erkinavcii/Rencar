@@ -22,4 +22,5 @@ interface WalletRepository {
     suspend fun getTransactions(): Result<List<WalletTransaction>>
     suspend fun loadBalance(amount: Double, cardId: String): Result<Double>
     suspend fun addCard(number: String, expiryDate: String): Result<PaymentCard>
+    suspend fun payFromBalance(amount: Double, title: String): Result<Double>
 }

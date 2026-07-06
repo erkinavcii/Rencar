@@ -54,6 +54,26 @@ class FakeWalletRepository @Inject constructor() : WalletRepository {
         return Result.success(balance)
     }
 
+    override suspend fun payFromBalance(amount: Double, title: String): Result<Double> {
+        delay(800)
+        if (amount > balance) {
+            return Result.failure(IllegalStateException("Yetersiz bakiye."))
+        }
+        balance -= amount
+        val currentTime = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
+        transactions.add(
+            0,
+            WalletTransaction(
+                id = (transactions.size + 1).toString(),
+                title = title,
+                date = "Bugün • $currentTime",
+                amount = amount,
+                isIncome = false,
+            ),
+        )
+        return Result.success(balance)
+    }
+
     override suspend fun addCard(number: String, expiryDate: String): Result<PaymentCard> {
         delay(800)
         val cleanNumber = number.replace(" ", "")
