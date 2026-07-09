@@ -44,7 +44,7 @@ dökümanlar BAĞLAYICI referanstır ve bunlara uymak ZORUNLUDUR:
 - `docs/architecture/mvi-viewmodel-rules.md` — ViewModel, UI bağlama (Route/Screen) ve DI kuralları.
 
 Referans implementasyon Login ekranıdır (`ui/auth/login/`). Bu referansı bozacak bir sapma
-gerekiyorsa DUR ve EK ONAY iste (bkz. §2.2).
+gerekiyorsa DUR ve EK ONAY iste 
 
 ## 3) ÇIKTI FORMATI
 

@@ -17,6 +17,12 @@ class RentalRepositoryImpl @Inject constructor(
         response.body() ?: error("Sunucudan bos yanit alindi.")
     }
 
+    override suspend fun getMyRentals(): Result<List<RentalResponseDto>> = runCatching {
+        val response = rentalService.getMyRentals()
+        if (!response.isSuccessful) error(response.apiMessage())
+        response.body() ?: emptyList()
+    }
+
     override suspend fun getRentalDetails(rentalId: String): Result<RentalResponseDto> = runCatching {
         val response = rentalService.getRentalDetails(rentalId)
         if (!response.isSuccessful) error(response.apiMessage())
