@@ -82,6 +82,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.turkcell.rencar_pair.BuildConfig
+import com.turkcell.rencar_pair.data.local.TokenManager
 import com.turkcell.rencar_pair.ui.navigation.NavigationTab
 import com.turkcell.rencar_pair.ui.navigation.RencarBottomNavigation
 import com.turkcell.rencar_pair.ui.theme.BackgroundLight
@@ -147,6 +148,8 @@ fun HomeRoute(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val tokenManager = remember { TokenManager(context.applicationContext) }
+    val isLocationAccuracyHigh = tokenManager.isLocationAccuracyHigh()
     var mapLibreMap by remember { mutableStateOf<MapLibreMap?>(null) }
     var markerVehicleIds by remember { mutableStateOf<Map<Marker, String>>(emptyMap()) }
     val snackbarHostState = remember { SnackbarHostState() }
@@ -188,12 +191,18 @@ fun HomeRoute(
                 )
                 HomeEffect.CenterOnUserLocation -> {
                     val map = mapLibreMap ?: return@collect
-                    // lastKnownLocation anlik bir onbellek olabilir (bayat/varsayilan deger
-                    // donebilir); TRACKING modu yerine bunu tercih etmek yaniltici oluyordu.
-                    // Bunun yerine kamerayi surekli takip moduna alip her yeni canli GPS
-                    // guncellemesinde otomatik kaymasini sagliyoruz.
-                    map.locationComponent.setCameraMode(CameraMode.TRACKING)
-                    map.locationComponent.zoomWhileTracking(15.0)
+                    val userLoc = uiState.userLocation
+                    if (userLoc != null) {
+                        map.animateCamera(
+                            CameraUpdateFactory.newLatLngZoom(
+                                MapLibreLatLng(userLoc.latitude, userLoc.longitude),
+                                15.0,
+                            ),
+                        )
+                    } else {
+                        map.locationComponent.setCameraMode(CameraMode.TRACKING)
+                        map.locationComponent.zoomWhileTracking(15.0)
+                    }
                 }
                 is HomeEffect.CenterOnLocation -> {
                     val map = mapLibreMap ?: return@collect
@@ -212,11 +221,28 @@ fun HomeRoute(
     LaunchedEffect(uiState.hasLocationPermission, mapLibreMap) {
         val map = mapLibreMap ?: return@LaunchedEffect
         if (uiState.hasLocationPermission) {
-            enableLocationComponent(context, map) { location ->
+            enableLocationComponent(context, map, isLocationAccuracyHigh) { location ->
                 viewModel.onIntent(
                     HomeIntent.UserLocationChanged(LatLng(location.latitude, location.longitude)),
                 )
             }
+        }
+    }
+
+    // İlk açılışta kullanıcı konumuna tek seferlik zoom ve Logcat izi.
+    var hasZoomedToUser by remember { mutableStateOf(false) }
+    LaunchedEffect(mapLibreMap, uiState.userLocation) {
+        val map = mapLibreMap ?: return@LaunchedEffect
+        val location = uiState.userLocation ?: return@LaunchedEffect
+        if (!hasZoomedToUser) {
+            hasZoomedToUser = true
+            android.util.Log.d("REN_MAP", "İlk zoom -> lat: ${location.latitude}, lng: ${location.longitude}")
+            map.animateCamera(
+                CameraUpdateFactory.newLatLngZoom(
+                    MapLibreLatLng(location.latitude, location.longitude),
+                    14.0,
+                ),
+            )
         }
     }
 
@@ -996,19 +1022,28 @@ private fun RencarMapView(
 private fun enableLocationComponent(
     context: Context,
     map: MapLibreMap,
+    isLocationAccuracyHigh: Boolean,
     onLocationUpdate: (Location) -> Unit,
 ) {
     val style = map.style ?: return
     val locationComponent = map.locationComponent
-    val highAccuracyRequest = LocationEngineRequest.Builder(1000L)
-        .setPriority(LocationEngineRequest.PRIORITY_HIGH_ACCURACY)
+
+    val priority = if (isLocationAccuracyHigh) {
+        LocationEngineRequest.PRIORITY_HIGH_ACCURACY
+    } else {
+        LocationEngineRequest.PRIORITY_BALANCED_POWER_ACCURACY
+    }
+
+    val request = LocationEngineRequest.Builder(1000L)
+        .setPriority(priority)
         .setFastestInterval(500L)
         .build()
+
     if (!locationComponent.isLocationComponentActivated) {
         locationComponent.activateLocationComponent(
             LocationComponentActivationOptions.builder(context, style)
                 .useDefaultLocationEngine(true)
-                .locationEngineRequest(highAccuracyRequest)
+                .locationEngineRequest(request)
                 .build(),
         )
     }
@@ -1031,7 +1066,7 @@ private fun enableLocationComponent(
     // "En yakin araci bul" ve alt karttaki gercek mesafe/sure gosterimi icin canli
     // kullanici konumu gerekiyor; bu callback her yeni GPS guncellemesinde tetiklenir.
     engine?.requestLocationUpdates(
-        highAccuracyRequest,
+        request,
         object : LocationEngineCallback<LocationEngineResult> {
             override fun onSuccess(result: LocationEngineResult) {
                 result.lastLocation?.let(onLocationUpdate)

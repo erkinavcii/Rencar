@@ -25,6 +25,7 @@ class ProfileViewModel @Inject constructor(
         ProfileUiState(
             userName  = tokenManager.getUserName(),
             userPhone = tokenManager.getUserPhone(),
+            isLocationAccuracyHigh = tokenManager.isLocationAccuracyHigh(),
         )
     )
     val uiState: StateFlow<ProfileUiState> = _uiState.asStateFlow()
@@ -41,6 +42,21 @@ class ProfileViewModel @Inject constructor(
         when (intent) {
             is ProfileIntent.Logout      -> logout()
             is ProfileIntent.EditProfile -> { /* TODO */ }
+            ProfileIntent.SettingsClicked -> {
+                _uiState.update {
+                    it.copy(
+                        showSettingsDialog = true,
+                        isLocationAccuracyHigh = tokenManager.isLocationAccuracyHigh()
+                    )
+                }
+            }
+            ProfileIntent.SettingsDismissed -> {
+                _uiState.update { it.copy(showSettingsDialog = false) }
+            }
+            is ProfileIntent.LocationAccuracyToggled -> {
+                tokenManager.setLocationAccuracyHigh(intent.isHigh)
+                _uiState.update { it.copy(isLocationAccuracyHigh = intent.isHigh) }
+            }
         }
     }
 
