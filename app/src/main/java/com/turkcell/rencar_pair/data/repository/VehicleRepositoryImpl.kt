@@ -16,6 +16,12 @@ class VehicleRepositoryImpl @Inject constructor(
         response.body() ?: emptyList()
     }
 
+    override suspend fun getVehicleDetails(id: String): Result<VehicleResponseDto> = runCatching {
+        val response = vehicleService.getVehicleDetails(id)
+        if (!response.isSuccessful) error(response.apiMessage())
+        response.body() ?: error("Sunucudan bos yanit alindi.")
+    }
+
     // API hata body'sindeki "message" alanini parse eder.
     private fun Response<*>.apiMessage(): String {
         val bodyString = errorBody()?.string()

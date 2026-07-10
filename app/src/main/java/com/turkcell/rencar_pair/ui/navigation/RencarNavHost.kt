@@ -1,13 +1,8 @@
 package com.turkcell.rencar_pair.ui.navigation
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -22,8 +17,7 @@ import com.turkcell.rencar_pair.ui.auth.register.RegisterRoute
 import com.turkcell.rencar_pair.ui.home.HomeRoute
 import com.turkcell.rencar_pair.ui.onboarding.OnboardingRoute
 import com.turkcell.rencar_pair.ui.splash.SplashRoute
-import com.turkcell.rencar_pair.ui.theme.bodyM
-import com.turkcell.rencar_pair.ui.theme.headingXL
+import com.turkcell.rencar_pair.ui.history.HistoryRoute
 import com.turkcell.rencar_pair.ui.profile.ProfileRoute
 import com.turkcell.rencar_pair.ui.reservation.ReservationRoute
 import com.turkcell.rencar_pair.ui.activerental.ActiveRentalRoute
@@ -245,10 +239,8 @@ fun RencarNavHost(
         }
 
         composable(ROUTE_HISTORY) {
-            PlaceholderScreen(
-                title = "Geçmiş",
-                tab = NavigationTab.GECMIS,
-                onTabSelected = handleTabNavigation
+            HistoryRoute(
+                onTabSelected = handleTabNavigation,
             )
         }
 
@@ -260,42 +252,6 @@ fun RencarNavHost(
                     }
                 },
                 onTabSelected = handleTabNavigation,
-            )
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun PlaceholderScreen(
-    title: String,
-    tab: NavigationTab,
-    onTabSelected: (NavigationTab) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(title, style = headingXL, fontWeight = FontWeight.Bold) },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
-            )
-        },
-        bottomBar = {
-            RencarBottomNavigation(selectedTab = tab, onTabSelected = onTabSelected)
-        },
-        containerColor = MaterialTheme.colorScheme.background,
-        modifier = modifier
-    ) { paddingValues ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = "$title ekranı yakında eklenecektir.",
-                style = bodyM,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
