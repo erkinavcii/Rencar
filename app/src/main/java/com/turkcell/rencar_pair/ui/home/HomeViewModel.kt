@@ -37,32 +37,6 @@ private fun VehicleResponseDto.toMarker(): VehicleMarker = VehicleMarker(
     pricePerDay = pricePerDay.toInt(),
 )
 
-// Backend'deki ehliyet onay akisi (admin erisimi) henuz test edilemedigi icin
-// /vehicles cagrisi basarisiz olursa (401/403/ag hatasi) haritayi bos birakmak
-// yerine mock veriye dusuyoruz. Gercek API duzelince bu dal hic tetiklenmeyecek.
-private fun mockVehicles(): List<VehicleMarker> = listOf(
-    VehicleMarker(
-        "mock-1", LatLng(40.9928, 29.0245), "₺28", VehicleCategory.EKONOMIK,
-        brand = "Renault", model = "Clio", plate = "34 RNC 022", pricePerDay = 750,
-    ),
-    VehicleMarker(
-        "mock-2", LatLng(40.9945, 29.0320), "₺38", VehicleCategory.KONFOR,
-        brand = "Volkswagen", model = "Passat", plate = "34 VWP 118", pricePerDay = 1500,
-    ),
-    VehicleMarker(
-        "mock-3", LatLng(40.9875, 29.0290), "₺32", VehicleCategory.SUV,
-        brand = "Hyundai", model = "Tucson", plate = "34 HYT 044", pricePerDay = 1250,
-    ),
-    VehicleMarker(
-        "mock-4", LatLng(40.9860, 29.0230), "₺26", VehicleCategory.EKONOMIK,
-        brand = "Fiat", model = "Egea", plate = "34 FEG 501", pricePerDay = 650,
-    ),
-    VehicleMarker(
-        "mock-5", LatLng(40.9890, 29.0310), "Kullanımda", VehicleCategory.KONFOR, inUse = true,
-        brand = "Skoda", model = "Octavia", plate = "34 SKO 077", pricePerDay = 1350,
-    ),
-)
-
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val vehicleRepository: VehicleRepository,
@@ -176,8 +150,9 @@ class HomeViewModel @Inject constructor(
                         it.copy(isLoading = false, vehicles = dtos.map { dto -> dto.toMarker() })
                     }
                 }
-                .onFailure {
-                    _uiState.update { it.copy(isLoading = false, vehicles = mockVehicles()) }
+                .onFailure { throwable ->
+                    _uiState.update { it.copy(isLoading = false, vehicles = emptyList()) }
+                    sendEffect(HomeEffect.ShowError(throwable.message ?: "Araçlar yüklenemedi."))
                 }
         }
     }

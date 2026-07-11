@@ -2,6 +2,7 @@ package com.turkcell.rencar_pair.ui.navigation
 
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -10,6 +11,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.turkcell.rencar_pair.data.local.TokenManager
+import com.turkcell.rencar_pair.data.session.SessionManager
 import com.turkcell.rencar_pair.ui.auth.license.LicenseRoute
 import com.turkcell.rencar_pair.ui.auth.login.LoginRoute
 import com.turkcell.rencar_pair.ui.auth.otp.OtpRoute
@@ -57,9 +59,18 @@ private fun activeRentalRoute(
 @Composable
 fun RencarNavHost(
     tokenManager: TokenManager,
+    sessionManager: SessionManager,
     modifier: Modifier = Modifier,
     navController: NavHostController = rememberNavController(),
 ) {
+    LaunchedEffect(Unit) {
+        sessionManager.sessionExpired.collect {
+            navController.navigate(ROUTE_LOGIN) {
+                popUpTo(0) { inclusive = true }
+            }
+        }
+    }
+
     val handleTabNavigation: (NavigationTab) -> Unit = { tab ->
         val targetRoute = when (tab) {
             NavigationTab.HARITA -> ROUTE_HOME

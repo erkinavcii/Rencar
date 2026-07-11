@@ -172,7 +172,7 @@
 
 - Veri Katmanı: `data/repository/VehicleRepository.kt` (interface) + `VehicleRepositoryImpl.kt`, mevcut `VehicleService`/`VehicleDtos.kt` (önceden eklenmiş, kullanılmıyordu) üzerine kuruldu. `di/VehicleModule.kt` ile `@Binds` bağlandı. `HomeViewModel` artık `init` bloğunda `loadVehicles()` çağırıyor; yüklenirken `HomeUiState.isLoading` ile harita üzerinde `CircularProgressIndicator` gösteriliyor.
 
-- Mock Fallback (Geçici): Ehliyet onay akışı admin erişimi olmadan test edilemediğinden (`/admin/licenses/{id}/approve` çağrılamıyor), `GET /vehicles` 401/403/ağ hatası ile başarısız olursa `HomeViewModel` sessizce mock araç listesine düşüyor (`HomeEffect.ShowError` artık tetiklenmiyor, kullanıcı akışı kesintiye uğramasın diye). Backend erişimi düzelince bu dal hiç tetiklenmeyecek; kod değişikliği gerekmez.
+- Mock Fallback Kaldırıldı (11.07.2026): Önceki "Mock Fallback (Geçici)" davranışı — `GET /vehicles` 401/403/ağ hatasıyla başarısız olduğunda `HomeViewModel`'in sessizce mock araç listesine (`mock-1..mock-5`) düşmesi — tamamen kaldırıldı. Artık `loadVehicles()`'daki `onFailure` bloğu `vehicles = emptyList()` yapıp `HomeEffect.ShowError` efektini (Snackbar) tetikliyor; kullanıcı hatayı görüyor, sahte veriyle yanıltılmıyor. 401 özelinde kullanıcı zaten yukarıdaki "Oturum Süresi Dolması (401)" kararı gereği `AuthInterceptor`/`SessionManager` üzerinden login ekranına yönlendiriliyor; bu Home ekranındaki hata gösterimi esas olarak diğer hata türlerini (ağ hatası, sunucu hatası vb.) kapsıyor.
 
 - Kategori Eşlemesi: API'nin gerçek `type` alanı (`SEDAN`/`SUV`/`HATCHBACK`/`STATION`/`MINIVAN`) tasarımdaki Ekonomik/Konfor/SUV filtre chip'lerine, otomotiv kiralama sektöründeki yerleşik segment kuralına göre eşlendi: `SEDAN`/`HATCHBACK` → Ekonomik, `STATION`/`MINIVAN` → Konfor, `SUV` → SUV. Bu eşleme uydurma bir iş kuralı değil, standart araç kiralama segment taksonomisidir.
 
@@ -222,6 +222,23 @@
 - Canlı Konum: `enableLocationComponent`, `LocationEngineRequest` üzerinden `locationComponent.locationEngine?.requestLocationUpdates(...)` ile her yeni GPS konumunda `onLocationUpdate` callback'ini tetikler; `HomeRoute` bunu `HomeIntent.UserLocationChanged` olarak ViewModel'e iletir. Yeni bağımlılık gerekmez, mevcut MapLibre location engine API'si kullanılır.
 
 - Son Bilinen Konum Fallback'i (05.07.2026): Yalnızca `requestLocationUpdates` ile yeni bir GPS fix'i beklemek, sistemde önbelleğe alınmış bir son konum olsa bile (ör. konum servisleri yeni bir fix üretmediği cihaz/emülatör durumlarında) arayüzün süresiz olarak "Konumunuz aranıyor..." demesine yol açıyordu. Bu nedenle `enableLocationComponent` artık aktivasyon sonrası önce `locationEngine.getLastLocation(...)` ile sistemde var olan son bilinen konumu anında kullanıyor, ardından `requestLocationUpdates` ile canlı güncellemeleri dinlemeye devam ediyor. `LocationEngine` arayüzünde zaten mevcut olan bir metottur, yeni bağımlılık gerekmez.
+
+
+### Oturum Süresi Dolması (401) — Sessiz Token Yenileme, Login Yönlendirmesi Yalnızca Son Çare
+
+- Karar (Güncellendi 11.07.2026): İlk versiyonda her 401'de doğrudan oturum sonlandırılıp login'e yönlendiriliyordu. Kullanıcı isteği üzerine bu davranış değiştirildi: artık 401 alındığında önce backend'de zaten tanımlı olan `POST auth/refresh` (`AuthService.kt:17-18`, `RefreshTokenDto`/`AuthResponseDto` ile) ile sessizce yeni bir access token alınmaya çalışılıyor; başarılı olursa orijinal istek yeni token ile şeffaf şekilde tekrar ediliyor ve kullanıcı hiçbir kesinti yaşamıyor. Kullanıcı yalnızca refresh token'ın **kendisi de** geçersiz/süresi dolmuşsa (refresh çağrısı da başarısız olursa) login ekranına düşüyor.
+
+- Son Güncelleme Tarihi: 11.07.2026
+
+- Uygulama: `AuthInterceptor.kt` tekrar sade haline döndürüldü (yalnızca `Authorization` header'ı ekler, response kontrolü yapmaz). 401 sonrası tüm mantık yeni eklenen `data/remote/TokenAuthenticator.kt` (`okhttp3.Authenticator` implementasyonu, `@Singleton`) içine taşındı: `TokenManager.getRefreshToken()` ile `auth/refresh` çağrılır, başarılıysa `TokenManager.saveTokens()` ile yeni token'lar kaydedilip istek `Authorization` header'ı güncellenerek tekrar denenir; refresh de başarısız olursa `TokenManager.clearTokens()` + `SessionManager.notifySessionExpired()` çağrılır (bu, önceki karardaki `RencarNavHost`/`MainActivity` yönlendirme mekanizmasını aynen tetikler, o kısım değişmedi).
+
+- Eşzamanlılık ve Döngü Koruması: Birden fazla istek aynı anda 401 alırsa yalnızca biri gerçekten refresh çağrısı yapar; `synchronized` blok içinde önce `TokenManager`'daki güncel access token, başarısız olan istekteki token ile karşılaştırılır — farklıysa (başka bir istek zaten yenilemiş demektir) doğrudan yeni token ile tekrar denenir. `auth/refresh` isteğinin kendisi 401 dönerse (refresh token geçersiz) tekrar refresh denenmez, path kontrolü ile doğrudan vazgeçilir; ayrıca aynı isteğin ikinci kez 401 alması durumunda (`responseCount >= 2`) sonsuz döngü engellenir.
+
+- DI: `TokenAuthenticator`, `AuthService`'e doğrudan değil `javax.inject.Provider<AuthService>` üzerinden bağımlı; bu, `OkHttpClient → TokenAuthenticator → AuthService → Retrofit → OkHttpClient` döngüsünü Dagger/Hilt'in `Provider` ile tembel çözümleme (lazy resolution) yaparak kırmasını sağlıyor, ayrı bir ikinci OkHttpClient/Retrofit kurulumu gerekmedi. `NetworkModule.provideOkHttpClient` artık `.authenticator(tokenAuthenticator)` da ekliyor.
+
+- Kapsam Dışı Bırakılan: Token olmadan yapılan istekler (login/OTP/register) 401 dönerse bu mekanizma hiç tetiklenmez. `AuthService.logout()` (`POST auth/logout`) endpoint'i tanımlı ama hâlâ hiçbir yerden çağrılmıyor; manuel çıkışta backend'e haber verilip refresh token'ın iptal edilmesi ayrı bir adımda ele alınabilir.
+
+- DI (SessionManager, değişmedi): `SessionManager`, parametresiz `@Inject constructor` ile tanımlandığından ayrı bir `@Provides` gerekmiyor. `MainActivity` `@Inject lateinit var sessionManager: SessionManager` ile field injection alıp `RencarNavHost`'a parametre olarak geçiriyor (`tokenManager` ile aynı desen).
 
 
 ### Rezervasyon Onayı Ekranı

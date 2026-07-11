@@ -7,6 +7,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.Modifier
 import com.turkcell.rencar_pair.data.local.TokenManager
+import com.turkcell.rencar_pair.data.session.SessionManager
 import com.turkcell.rencar_pair.ui.navigation.RencarNavHost
 import com.turkcell.rencar_pair.ui.theme.RencarpairTheme
 import dagger.hilt.android.AndroidEntryPoint
@@ -18,6 +19,9 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var tokenManager: TokenManager
 
+    @Inject
+    lateinit var sessionManager: SessionManager
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -25,6 +29,7 @@ class MainActivity : ComponentActivity() {
             RencarpairTheme {
                 RencarNavHost(
                     tokenManager = tokenManager,
+                    sessionManager = sessionManager,
                     modifier = Modifier.fillMaxSize()
                 )
             }
