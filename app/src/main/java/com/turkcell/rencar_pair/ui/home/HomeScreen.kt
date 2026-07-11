@@ -7,6 +7,7 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.RectF
+import android.annotation.SuppressLint
 import android.location.Location
 import android.os.Looper
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -138,10 +139,14 @@ import org.maplibre.android.location.modes.RenderMode
 import org.maplibre.android.maps.MapLibreMap
 import org.maplibre.android.maps.MapView
 import org.maplibre.android.maps.Style
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
+import com.google.android.gms.tasks.CancellationTokenSource
 
 private val KADIKOY_CENTER = MapLibreLatLng(40.9903, 29.0275)
 private const val MAP_STYLE_URL = "https://api.maptiler.com/maps/streets-v4/style.json"
 
+@SuppressLint("MissingPermission")
 @Composable
 fun HomeRoute(
     onTabSelected: (NavigationTab) -> Unit,
@@ -277,7 +282,20 @@ fun HomeRoute(
             override fun onFailure(exception: Exception) = Unit
         }
 
-        engine?.getLastLocation(callback)
+        // getLastLocation() yalnizca onbellekten okur ve bayat/null donebilir (ekranda
+        // sonsuza dek "Konumunuz araniyor..." takili kalmasina yol acan senaryo budur).
+        // Google'in onerdigi FusedLocationProviderClient.getCurrentLocation() ise geregi
+        // haldeyse onbellegi kullanir, degilse GPS/ag saglayicisindan zorla taze bir fix
+        // ister; ilk konum bu yuzden bununla aliniyor.
+        LocationServices.getFusedLocationProviderClient(context)
+            .getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, CancellationTokenSource().token)
+            .addOnSuccessListener { location ->
+                location?.let {
+                    viewModel.onIntent(
+                        HomeIntent.UserLocationChanged(LatLng(it.latitude, it.longitude)),
+                    )
+                }
+            }
         engine?.requestLocationUpdates(request, callback, Looper.getMainLooper())
 
         onDispose {
