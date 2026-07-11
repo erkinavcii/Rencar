@@ -12,6 +12,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import com.turkcell.rencar_pair.data.local.TokenManager
+import com.turkcell.rencar_pair.data.repository.RentalRepository
 import javax.inject.Inject
 
 // API'nin gercek arac tipini (SEDAN/SUV/HATCHBACK/STATION/MINIVAN) tasarimdaki
@@ -38,13 +40,22 @@ private fun VehicleResponseDto.toMarker(): VehicleMarker = VehicleMarker(
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val vehicleRepository: VehicleRepository,
+    private val rentalRepository: RentalRepository,
+    private val tokenManager: TokenManager,
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(HomeUiState(isLoading = true))
+    private val _uiState = MutableStateFlow(
+        HomeUiState(
+            isLoading = true,
+            isLocationAccuracyHigh = tokenManager.isLocationAccuracyHigh()
+        )
+    )
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
     private val _effect = Channel<HomeEffect>(Channel.BUFFERED)
     val effect = _effect.receiveAsFlow()
+
+    private var hasResumedOnce = false
 
     init {
         loadVehicles()
@@ -73,6 +84,60 @@ class HomeViewModel @Inject constructor(
             HomeIntent.LocateMeClicked -> locateMe()
 
             HomeIntent.FindNearestVehicleClicked -> findNearestVehicle()
+
+            HomeIntent.RefreshSettings -> {
+                _uiState.update {
+                    it.copy(isLocationAccuracyHigh = tokenManager.isLocationAccuracyHigh())
+                }
+                // Ekran ilk kez ON_RESUME aldiginda (soguk acilis) aktif kiralamaya
+                // otomatik donuluyor. Sonraki ON_RESUME'larda yalnizca banner tazeleniyor;
+                // aksi halde ActiveRentalScreen'den geri tusuyla cikan kullanici aninda
+                // o ekrana geri firlatilir ve haritaya hic donemez.
+                val isColdStart = !hasResumedOnce
+                hasResumedOnce = true
+                checkActiveRental(autoNavigate = isColdStart)
+            }
+        }
+    }
+
+    private fun checkActiveRental(autoNavigate: Boolean) {
+        viewModelScope.launch {
+            rentalRepository.getMyRentals()
+                .onSuccess { rentals ->
+                    val active = rentals.find { it.status == "ACTIVE" }
+                    if (active == null) {
+                        _uiState.update { it.copy(activeRental = null) }
+                        return@onSuccess
+                    }
+                    // Arac detayi alinamasa bile kullanicinin aktif kiralamasina
+                    // donebilmesi gerekir; marka/model/plaka olmadan da devam ediyoruz.
+                    val vehicle = vehicleRepository.getVehicleDetails(active.vehicleId).getOrNull()
+                    val summary = ActiveRentalSummary(
+                        rentalId = active.id,
+                        vehicleId = active.vehicleId,
+                        vehicle = vehicle?.let {
+                            ActiveRentalVehicle(
+                                brand = it.brand,
+                                model = it.model,
+                                plate = it.plate,
+                                pricePerDay = it.pricePerDay,
+                            )
+                        },
+                    )
+                    _uiState.update { it.copy(activeRental = summary) }
+                    if (autoNavigate) {
+                        _effect.send(HomeEffect.NavigateToActiveRental(summary))
+                    }
+                }
+                .onFailure {
+                    // Kiralama listesi cekilemedi. Mevcut banner'i silmiyoruz: gecici bir
+                    // ag hatasi yuzunden kullanicinin aktif kiralamaya erisimini kesmek,
+                    // eski bir banner'i bir sure daha gostermekten daha kotu. Hatayi sadece
+                    // acilista bildiriyoruz; her ON_RESUME'da snackbar gostermek gurultu olur.
+                    if (autoNavigate) {
+                        _effect.send(HomeEffect.ShowError("Aktif kiralama bilgisi alınamadı."))
+                    }
+                }
         }
     }
 

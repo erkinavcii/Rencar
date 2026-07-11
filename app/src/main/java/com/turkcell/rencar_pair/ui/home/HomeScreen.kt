@@ -38,6 +38,7 @@ import androidx.compose.material.icons.filled.EventSeat
 import androidx.compose.material.icons.filled.LocalGasStation
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.LockOpen
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Search
@@ -82,6 +83,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.turkcell.rencar_pair.BuildConfig
+import com.turkcell.rencar_pair.data.local.TokenManager
 import com.turkcell.rencar_pair.ui.navigation.NavigationTab
 import com.turkcell.rencar_pair.ui.navigation.RencarBottomNavigation
 import com.turkcell.rencar_pair.ui.theme.BackgroundLight
@@ -116,7 +118,9 @@ import com.turkcell.rencar_pair.ui.theme.labelXS
 import com.turkcell.rencar_pair.ui.theme.priceL
 import com.turkcell.rencar_pair.ui.theme.statValue
 import com.turkcell.rencar_pair.ui.theme.titleL
+import com.turkcell.rencar_pair.ui.theme.titleS
 import com.turkcell.rencar_pair.ui.theme.titleXS
+import androidx.compose.ui.text.font.FontWeight
 import org.maplibre.android.MapLibre
 import org.maplibre.android.WellKnownTileServer
 import org.maplibre.android.annotations.IconFactory
@@ -142,15 +146,32 @@ private const val MAP_STYLE_URL = "https://api.maptiler.com/maps/streets-v4/styl
 fun HomeRoute(
     onTabSelected: (NavigationTab) -> Unit,
     onNavigateToReservation: (vehicleId: String, brand: String, model: String, plate: String, pricePerDay: Int) -> Unit,
+    onNavigateToActiveRental: (ActiveRentalSummary) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
     var mapLibreMap by remember { mutableStateOf<MapLibreMap?>(null) }
     var markerVehicleIds by remember { mutableStateOf<Map<Marker, String>>(emptyMap()) }
     val snackbarHostState = remember { SnackbarHostState() }
     val isDark = isDarkHome()
+
+    // Her ON_RESUME'da konum hassasiyeti ayari TokenManager'dan tazelenir ve aktif
+    // kiralama kontrol edilir. Ilk ON_RESUME ayni zamanda soguk acilis demektir;
+    // HomeViewModel bunu aktif kiralamaya otomatik yonlendirmek icin kullanir.
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                viewModel.onIntent(HomeIntent.RefreshSettings)
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions(),
@@ -188,12 +209,15 @@ fun HomeRoute(
                 )
                 HomeEffect.CenterOnUserLocation -> {
                     val map = mapLibreMap ?: return@collect
-                    // lastKnownLocation anlik bir onbellek olabilir (bayat/varsayilan deger
-                    // donebilir); TRACKING modu yerine bunu tercih etmek yaniltici oluyordu.
-                    // Bunun yerine kamerayi surekli takip moduna alip her yeni canli GPS
-                    // guncellemesinde otomatik kaymasini sagliyoruz.
-                    map.locationComponent.setCameraMode(CameraMode.TRACKING)
-                    map.locationComponent.zoomWhileTracking(15.0)
+                    val userLoc = uiState.userLocation
+                    if (userLoc != null) {
+                        map.animateCamera(
+                            CameraUpdateFactory.newLatLngZoom(
+                                MapLibreLatLng(userLoc.latitude, userLoc.longitude),
+                                15.0,
+                            ),
+                        )
+                    }
                 }
                 is HomeEffect.CenterOnLocation -> {
                     val map = mapLibreMap ?: return@collect
@@ -205,18 +229,76 @@ fun HomeRoute(
                     )
                 }
                 is HomeEffect.ShowError -> snackbarHostState.showSnackbar(effect.message)
+                is HomeEffect.NavigateToActiveRental -> onNavigateToActiveRental(effect.activeRental)
             }
         }
     }
 
-    LaunchedEffect(uiState.hasLocationPermission, mapLibreMap) {
-        val map = mapLibreMap ?: return@LaunchedEffect
-        if (uiState.hasLocationPermission) {
-            enableLocationComponent(context, map) { location ->
-                viewModel.onIntent(
-                    HomeIntent.UserLocationChanged(LatLng(location.latitude, location.longitude)),
-                )
+    // Reactive location updates. Disposes the callback and restarts high or balanced updates when settings or permissions change.
+    DisposableEffect(uiState.hasLocationPermission, mapLibreMap, uiState.isLocationAccuracyHigh) {
+        val map = mapLibreMap ?: return@DisposableEffect onDispose {}
+        if (!uiState.hasLocationPermission) return@DisposableEffect onDispose {}
+
+        val style = map.style ?: return@DisposableEffect onDispose {}
+        val locationComponent = map.locationComponent
+
+        val priority = if (uiState.isLocationAccuracyHigh) {
+            LocationEngineRequest.PRIORITY_HIGH_ACCURACY
+        } else {
+            LocationEngineRequest.PRIORITY_BALANCED_POWER_ACCURACY
+        }
+
+        val request = LocationEngineRequest.Builder(1000L)
+            .setPriority(priority)
+            .setFastestInterval(500L)
+            .build()
+
+        if (!locationComponent.isLocationComponentActivated) {
+            locationComponent.activateLocationComponent(
+                LocationComponentActivationOptions.builder(context, style)
+                    .useDefaultLocationEngine(true)
+                    .locationEngineRequest(request)
+                    .build(),
+            )
+        }
+        locationComponent.isLocationComponentEnabled = true
+        locationComponent.renderMode = RenderMode.NORMAL
+
+        val engine = locationComponent.locationEngine
+        val callback = object : LocationEngineCallback<LocationEngineResult> {
+            override fun onSuccess(result: LocationEngineResult) {
+                result.lastLocation?.let { location ->
+                    viewModel.onIntent(
+                        HomeIntent.UserLocationChanged(LatLng(location.latitude, location.longitude)),
+                    )
+                }
             }
+
+            override fun onFailure(exception: Exception) = Unit
+        }
+
+        engine?.getLastLocation(callback)
+        engine?.requestLocationUpdates(request, callback, Looper.getMainLooper())
+
+        onDispose {
+            engine?.removeLocationUpdates(callback)
+        }
+    }
+
+    // İlk açılışta kullanıcı konumuna tek seferlik zoom ve Logcat izi.
+    var hasZoomedToUser by remember { mutableStateOf(false) }
+    LaunchedEffect(mapLibreMap, uiState.userLocation) {
+        val map = mapLibreMap ?: return@LaunchedEffect
+        val location = uiState.userLocation ?: return@LaunchedEffect
+        if (!hasZoomedToUser) {
+            hasZoomedToUser = true
+            android.util.Log.d("REN_MAP", "İlk zoom -> lat: ${location.latitude}, lng: ${location.longitude}")
+            map.animateCamera(
+                CameraUpdateFactory.newLatLngZoom(
+                    MapLibreLatLng(location.latitude, location.longitude),
+                    14.0,
+                ),
+            )
         }
     }
 
@@ -248,6 +330,7 @@ fun HomeRoute(
         onIntent = viewModel::onIntent,
         onTabSelected = onTabSelected,
         onNavigateToReservation = onNavigateToReservation,
+        onNavigateToActiveRental = onNavigateToActiveRental,
         onMapReady = { mapLibreMap = it },
         onZoomIn = { mapLibreMap?.animateCamera(CameraUpdateFactory.zoomIn()) },
         onZoomOut = { mapLibreMap?.animateCamera(CameraUpdateFactory.zoomOut()) },
@@ -262,6 +345,7 @@ fun HomeScreen(
     onIntent: (HomeIntent) -> Unit,
     onTabSelected: (NavigationTab) -> Unit,
     onNavigateToReservation: (vehicleId: String, brand: String, model: String, plate: String, pricePerDay: Int) -> Unit,
+    onNavigateToActiveRental: (ActiveRentalSummary) -> Unit,
     onMapReady: (MapLibreMap) -> Unit,
     onZoomIn: () -> Unit,
     onZoomOut: () -> Unit,
@@ -306,6 +390,15 @@ fun HomeScreen(
                         query = state.searchQuery,
                         onQueryChange = { onIntent(HomeIntent.SearchQueryChanged(it)) },
                         modifier = Modifier.weight(1f),
+                    )
+                }
+
+                state.activeRental?.let { activeRental ->
+                    Spacer(modifier = Modifier.height(10.dp))
+                    ActiveRentalBanner(
+                        activeRental = activeRental,
+                        onClick = { onNavigateToActiveRental(activeRental) },
+                        modifier = Modifier.padding(horizontal = 18.dp)
                     )
                 }
 
@@ -993,56 +1086,6 @@ private fun RencarMapView(
     )
 }
 
-private fun enableLocationComponent(
-    context: Context,
-    map: MapLibreMap,
-    onLocationUpdate: (Location) -> Unit,
-) {
-    val style = map.style ?: return
-    val locationComponent = map.locationComponent
-    val highAccuracyRequest = LocationEngineRequest.Builder(1000L)
-        .setPriority(LocationEngineRequest.PRIORITY_HIGH_ACCURACY)
-        .setFastestInterval(500L)
-        .build()
-    if (!locationComponent.isLocationComponentActivated) {
-        locationComponent.activateLocationComponent(
-            LocationComponentActivationOptions.builder(context, style)
-                .useDefaultLocationEngine(true)
-                .locationEngineRequest(highAccuracyRequest)
-                .build(),
-        )
-    }
-    locationComponent.isLocationComponentEnabled = true
-    locationComponent.renderMode = RenderMode.NORMAL
-
-    val engine = locationComponent.locationEngine
-
-    // Yeni bir GPS fix'i gelene kadar ekranda sonsuza dek "Konumunuz araniyor..."
-    // takili kalmamasi icin, sistemde onbellekte zaten bulunan son bilinen konum
-    // (varsa) hemen kullanilir; ardindan canli guncellemeler dinlenmeye devam eder.
-    engine?.getLastLocation(object : LocationEngineCallback<LocationEngineResult> {
-        override fun onSuccess(result: LocationEngineResult) {
-            result.lastLocation?.let(onLocationUpdate)
-        }
-
-        override fun onFailure(exception: Exception) = Unit
-    })
-
-    // "En yakin araci bul" ve alt karttaki gercek mesafe/sure gosterimi icin canli
-    // kullanici konumu gerekiyor; bu callback her yeni GPS guncellemesinde tetiklenir.
-    engine?.requestLocationUpdates(
-        highAccuracyRequest,
-        object : LocationEngineCallback<LocationEngineResult> {
-            override fun onSuccess(result: LocationEngineResult) {
-                result.lastLocation?.let(onLocationUpdate)
-            }
-
-            override fun onFailure(exception: Exception) = Unit
-        },
-        Looper.getMainLooper(),
-    )
-}
-
 private const val CAMERA_FIT_PADDING_DP = 56
 
 // Sabit Kadikoy merkezi yalnizca veri gelene kadarki nötr baslangic konumudur (bu sirada
@@ -1132,4 +1175,67 @@ private fun createPriceMarkerBitmap(label: String, backgroundColor: Int): Bitmap
         textPaint,
     )
     return bitmap
+}
+
+@Composable
+private fun ActiveRentalBanner(
+    activeRental: ActiveRentalSummary,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val isDark = isDarkHome()
+    val containerBg = if (isDark) Color(0xFF1B2E3C) else Color(0xFFE3F2FD)
+    val borderColor = if (isDark) Color(0xFF1E88E5).copy(alpha = 0.5f) else Color(0xFF90CAF9)
+    val textColor = if (isDark) Color(0xFFE3F2FD) else Color(0xFF0D47A1)
+    val labelColor = if (isDark) Color(0xFF90CAF9) else Color(0xFF1565C0)
+
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(containerBg)
+            .border(width = 1.dp, color = borderColor, shape = RoundedCornerShape(16.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(if (isDark) Color(0xFF1A237E) else Color(0xFFBBDEFB)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = Icons.Default.DirectionsCar,
+                contentDescription = null,
+                tint = if (isDark) Color(0xFF90CAF9) else Color(0xFF0D47A1),
+                modifier = Modifier.size(22.dp)
+            )
+        }
+        Spacer(modifier = Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            val vehicle = activeRental.vehicle
+            Text(
+                text = if (vehicle != null) {
+                    "${vehicle.brand} ${vehicle.model} · ${vehicle.plate}"
+                } else {
+                    "Aktif kiralamanız"
+                },
+                style = titleS.copy(fontWeight = FontWeight.Bold),
+                color = textColor
+            )
+            Text(
+                text = "Aktif kiralamanız devam ediyor. Detaylar için tıklayın.",
+                style = bodyS,
+                color = labelColor
+            )
+        }
+        Icon(
+            imageVector = Icons.Default.ChevronRight,
+            contentDescription = null,
+            tint = labelColor,
+            modifier = Modifier.size(20.dp)
+        )
+    }
 }

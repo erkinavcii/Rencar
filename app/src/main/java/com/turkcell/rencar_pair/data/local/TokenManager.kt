@@ -15,6 +15,7 @@ class TokenManager @Inject constructor(context: Context) {
         private const val KEY_REFRESH_TOKEN = "refresh_token"
         private const val KEY_USER_NAME     = "user_name"
         private const val KEY_USER_PHONE    = "user_phone"
+        private const val KEY_LOCATION_ACCURACY_HIGH = "location_accuracy_high"
     }
 
     // ── Tokens ────────────────────────────────────────────────────────────────
@@ -44,6 +45,14 @@ class TokenManager @Inject constructor(context: Context) {
     fun getUserName(): String  = prefs.getString(KEY_USER_NAME, "") ?: ""
     fun getUserPhone(): String = prefs.getString(KEY_USER_PHONE, "") ?: ""
 
+    // ── Settings ──────────────────────────────────────────────────────────────
+
+    fun setLocationAccuracyHigh(isHigh: Boolean) {
+        prefs.edit().putBoolean(KEY_LOCATION_ACCURACY_HIGH, isHigh).apply()
+    }
+
+    fun isLocationAccuracyHigh(): Boolean = prefs.getBoolean(KEY_LOCATION_ACCURACY_HIGH, true)
+
     // ── Logout ────────────────────────────────────────────────────────────────
 
     /** Clears all persisted session and profile data. */
@@ -53,6 +62,7 @@ class TokenManager @Inject constructor(context: Context) {
             remove(KEY_REFRESH_TOKEN)
             remove(KEY_USER_NAME)
             remove(KEY_USER_PHONE)
+            remove(KEY_LOCATION_ACCURACY_HIGH)
             apply()
         }
     }

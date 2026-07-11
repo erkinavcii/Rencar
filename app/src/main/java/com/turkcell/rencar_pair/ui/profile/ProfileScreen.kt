@@ -107,12 +107,24 @@ fun ProfileScreen(
             Spacer(Modifier.height(14.dp))
 
             // ── Menu card ─────────────────────────────────────────────────────
-            MenuCard(onTabSelected = onTabSelected)
+            MenuCard(
+                onTabSelected = onTabSelected,
+                onSettingsClicked = { onIntent(ProfileIntent.SettingsClicked) }
+            )
 
             Spacer(Modifier.height(14.dp))
 
             // ── Logout card ───────────────────────────────────────────────────
             LogoutCard(onLogout = { onIntent(ProfileIntent.Logout) })
+
+            // ── Settings Dialog ───────────────────────────────────────────────
+            if (state.showSettingsDialog) {
+                SettingsDialog(
+                    isHighAccuracy = state.isLocationAccuracyHigh,
+                    onToggleAccuracy = { isHigh -> onIntent(ProfileIntent.LocationAccuracyToggled(isHigh)) },
+                    onDismiss = { onIntent(ProfileIntent.SettingsDismissed) }
+                )
+            }
         }
     }
 }
@@ -246,7 +258,10 @@ private fun LicenseCard(isApproved: Boolean, licenseClass: String) {
 // ─── Menu Card ────────────────────────────────────────────────────────────────
 
 @Composable
-private fun MenuCard(onTabSelected: (NavigationTab) -> Unit) {
+private fun MenuCard(
+    onTabSelected: (NavigationTab) -> Unit,
+    onSettingsClicked: () -> Unit
+) {
     val items = listOf(
         "Ödeme yöntemleri",
         "Ayarlar",
@@ -266,7 +281,10 @@ private fun MenuCard(onTabSelected: (NavigationTab) -> Unit) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable {
-                        if (index == 0) onTabSelected(NavigationTab.CUZDAN)
+                        when (index) {
+                            0 -> onTabSelected(NavigationTab.CUZDAN)
+                            1 -> onSettingsClicked()
+                        }
                     }
                     .padding(vertical = 14.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -291,6 +309,104 @@ private fun MenuCard(onTabSelected: (NavigationTab) -> Unit) {
             }
         }
     }
+}
+
+// ─── Settings Dialog ──────────────────────────────────────────────────────────
+
+@Composable
+private fun SettingsDialog(
+    isHighAccuracy: Boolean,
+    onToggleAccuracy: (Boolean) -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        shape = RoundedCornerShape(24.dp),
+        containerColor = Color.White,
+        title = {
+            Text(
+                text = "Uygulama Ayarları",
+                style = headingXS.copy(fontWeight = FontWeight.Bold),
+                color = TextPrimaryLight
+            )
+        },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text(
+                    text = "Konum Hassasiyeti ve Güç Tüketimi",
+                    style = bodyS.copy(fontWeight = FontWeight.Bold),
+                    color = TextSecondaryLight
+                )
+
+                // High Accuracy (GPS)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onToggleAccuracy(true) }
+                        .padding(vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    RadioButton(
+                        selected = isHighAccuracy,
+                        onClick = { onToggleAccuracy(true) },
+                        colors = RadioButtonDefaults.colors(selectedColor = Primary)
+                    )
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Yüksek Doğruluk (GPS)",
+                            style = bodyM.copy(fontWeight = FontWeight.Bold),
+                            color = TextPrimaryLight
+                        )
+                        Text(
+                            text = "Canlı harita takibi için idealdir. Daha fazla pil tüketir.",
+                            style = bodyS,
+                            color = TextHintLight
+                        )
+                    }
+                }
+
+                // Balanced Power (Cell + Wi-Fi)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onToggleAccuracy(false) }
+                        .padding(vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    RadioButton(
+                        selected = !isHighAccuracy,
+                        onClick = { onToggleAccuracy(false) },
+                        colors = RadioButtonDefaults.colors(selectedColor = Primary)
+                    )
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Dengeli Güç Tasarrufu",
+                            style = bodyM.copy(fontWeight = FontWeight.Bold),
+                            color = TextPrimaryLight
+                        )
+                        Text(
+                            text = "Baz istasyonu ve Wi-Fi kullanır. Pil tasarrufu sağlar.",
+                            style = bodyS,
+                            color = TextHintLight
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = onDismiss,
+                colors = ButtonDefaults.textButtonColors(contentColor = Primary)
+            ) {
+                Text("Kapat", style = labelM.copy(fontWeight = FontWeight.Bold))
+            }
+        }
+    )
 }
 
 // ─── Logout Card ──────────────────────────────────────────────────────────────
