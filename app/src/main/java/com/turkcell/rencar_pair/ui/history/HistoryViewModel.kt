@@ -33,6 +33,26 @@ class HistoryViewModel @Inject constructor(
         when (intent) {
             is HistoryIntent.LoadHistory -> loadHistory()
             is HistoryIntent.Refresh -> loadHistory()
+            is HistoryIntent.SortToggled -> toggleSort()
+            is HistoryIntent.SearchQueryChanged ->
+                _uiState.update { it.copy(searchQuery = intent.query) }
+            is HistoryIntent.MonthFilterChanged ->
+                _uiState.update { it.copy(selectedMonthFilter = intent.monthKey) }
+            is HistoryIntent.TripSelected ->
+                _uiState.update { it.copy(selectedTripId = intent.tripId) }
+            is HistoryIntent.TripDetailDismissed ->
+                _uiState.update { it.copy(selectedTripId = null) }
+        }
+    }
+
+    private fun toggleSort() {
+        _uiState.update {
+            val next = if (it.selectedSort == HistorySortOption.DATE_DESC) {
+                HistorySortOption.DATE_ASC
+            } else {
+                HistorySortOption.DATE_DESC
+            }
+            it.copy(selectedSort = next)
         }
     }
 
@@ -48,6 +68,8 @@ class HistoryViewModel @Inject constructor(
                             isLoading = false,
                             monthlyTripCount = summary.monthlyTripCount,
                             monthlySpending = summary.monthlySpending,
+                            totalTripCount = summary.totalTripCount,
+                            totalSpending = summary.totalSpending,
                             trips = summary.trips,
                         )
                     }

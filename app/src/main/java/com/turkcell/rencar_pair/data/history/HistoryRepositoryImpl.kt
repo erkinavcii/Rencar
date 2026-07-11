@@ -35,22 +35,29 @@ class HistoryRepositoryImpl @Inject constructor(
         timeZone = TimeZone.getTimeZone("UTC")
     }
     private val displayFormat = SimpleDateFormat("d MMM yyyy · HH:mm", Locale("tr", "TR"))
+    private val fullDisplayFormat = SimpleDateFormat("d MMMM yyyy, EEEE · HH:mm", Locale("tr", "TR"))
+
+    private data class VehicleInfo(val name: String, val plate: String)
 
     override suspend fun getHistory(): Result<HistorySummary> = runCatching {
         val rentals = rentalRepository.getMyRentals().getOrThrow()
         val completed = rentals.filter { it.status == "COMPLETED" }
 
         // Aynı aracı birden fazla kez sorgulamamak için basit bir önbellek.
-        val vehicleNameCache = HashMap<String, String>()
+        val vehicleInfoCache = HashMap<String, VehicleInfo>()
 
         val trips = coroutineScope {
             completed.map { rental ->
                 async {
-                    val vehicleName = vehicleNameCache.getOrPut(rental.vehicleId) {
+                    val vehicleInfo = vehicleInfoCache.getOrPut(rental.vehicleId) {
                         val vehicle = vehicleRepository.getVehicleDetails(rental.vehicleId).getOrNull()
-                        if (vehicle != null) "${vehicle.brand} ${vehicle.model}".trim() else "Araç"
+                        if (vehicle != null) {
+                            VehicleInfo(name = "${vehicle.brand} ${vehicle.model}".trim(), plate = vehicle.plate)
+                        } else {
+                            VehicleInfo(name = "Araç", plate = "-")
+                        }
                     }
-                    rental.toHistoryTrip(vehicleName)
+                    rental.toHistoryTrip(vehicleInfo)
                 }
             }.map { it.await() }
         }
@@ -61,18 +68,21 @@ class HistoryRepositoryImpl @Inject constructor(
         HistorySummary(
             monthlyTripCount = thisMonthCompleted.size,
             monthlySpending = thisMonthCompleted.sumOf { it.totalPrice },
+            totalTripCount = completed.size,
+            totalSpending = completed.sumOf { it.totalPrice },
             trips = trips,
         )
     }
 
-    private fun RentalResponseDto.toHistoryTrip(vehicleName: String): HistoryTrip {
+    private fun RentalResponseDto.toHistoryTrip(vehicleInfo: VehicleInfo): HistoryTrip {
         val start = runCatching { isoFormat.parse(startDate) }.getOrNull()
         val end = runCatching { isoFormat.parse(endDate) }.getOrNull()
 
         val dateLabel = start?.let { displayFormat.format(it) } ?: startDate
+        val fullDateLabel = start?.let { fullDisplayFormat.format(it) } ?: startDate
+        val durationMinutes = if (start != null && end != null) abs(end.time - start.time) / 60000 else 0L
         val durationLabel = if (start != null && end != null) {
-            val minutes = abs(end.time - start.time) / 60000
-            if (minutes < 60) "$minutes dk" else "${minutes / 60} sa ${minutes % 60} dk"
+            if (durationMinutes < 60) "$durationMinutes dk" else "${durationMinutes / 60} sa ${durationMinutes % 60} dk"
         } else {
             "-"
         }
@@ -91,9 +101,13 @@ class HistoryRepositoryImpl @Inject constructor(
 
         return HistoryTrip(
             id = id,
-            vehicleName = vehicleName.ifBlank { "Araç" },
+            vehicleName = vehicleInfo.name.ifBlank { "Araç" },
+            plate = vehicleInfo.plate,
             dateLabel = dateLabel,
+            fullDateLabel = fullDateLabel,
+            startDateMillis = start?.time ?: 0L,
             durationLabel = durationLabel,
+            durationMinutes = durationMinutes,
             price = totalPrice,
             routeStart = routeStart,
             routeEnd = routeEnd,
