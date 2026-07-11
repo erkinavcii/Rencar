@@ -75,6 +75,10 @@ fun WalletScreen(
     snackbarHostState: SnackbarHostState,
     modifier: Modifier = Modifier,
 ) {
+    val isDark = isDarkWallet()
+    val textPrimary = if (isDark) TextPrimaryDark else TextPrimaryLight
+    val containerBg = if (isDark) BackgroundDark else BackgroundLight
+
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
@@ -83,11 +87,11 @@ fun WalletScreen(
                     Text(
                         text   = "Cüzdan",
                         style  = headingXL,
-                        color  = TextPrimaryLight,
+                        color  = textPrimary,
                     )
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = BackgroundLight,
+                    containerColor = containerBg,
                 ),
             )
         },
@@ -97,7 +101,7 @@ fun WalletScreen(
                 onTabSelected = onTabSelected,
             )
         },
-        containerColor = BackgroundLight,
+        containerColor = containerBg,
         modifier = modifier,
     ) { innerPadding ->
 
@@ -129,12 +133,12 @@ fun WalletScreen(
                     Text(
                         text  = "Kayıtlı kartlar",
                         style = titleM.copy(fontWeight = FontWeight.Bold),
-                        color = TextPrimaryLight,
+                        color = if (isDark) TextPrimaryDark else TextPrimaryLight,
                     )
                     Text(
                         text     = "+ Ekle",
                         style    = titleS,
-                        color    = Primary,
+                        color    = if (isDark) PrimaryOnDark else Primary,
                         modifier = Modifier.clickable { onIntent(WalletIntent.ToggleAddCardDialog) },
                     )
                 }
@@ -153,7 +157,7 @@ fun WalletScreen(
                 Text(
                     text  = "Son işlemler",
                     style = titleM.copy(fontWeight = FontWeight.Bold),
-                    color = TextPrimaryLight,
+                    color = if (isDark) TextPrimaryDark else TextPrimaryLight,
                 )
                 Spacer(Modifier.height(11.dp))
             }
@@ -165,13 +169,13 @@ fun WalletScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(16.dp))
-                            .background(Color.White)
+                            .background(if (isDark) SurfaceDark else Color.White)
                             .padding(horizontal = 14.dp, vertical = 4.dp),
                     ) {
                         state.transactions.forEachIndexed { index, tx ->
                             TransactionRow(tx)
                             if (index < state.transactions.lastIndex) {
-                                HorizontalDivider(color = DividerLight)
+                                HorizontalDivider(color = if (isDark) BorderSubtleDark else DividerLight)
                             }
                         }
                     }
@@ -182,7 +186,7 @@ fun WalletScreen(
                     Text(
                         text      = "Henüz işlem bulunmuyor.",
                         style     = bodyM,
-                        color     = TextHintLight,
+                        color     = if (isDark) TextHintDark else TextHintLight,
                         modifier  = Modifier.fillMaxWidth(),
                         textAlign = TextAlign.Center,
                     )
@@ -193,9 +197,14 @@ fun WalletScreen(
 
     // ── Add Card bottom sheet ─────────────────────────────────────────────────
     if (state.showAddCardDialog) {
+        val primaryColor = if (isDark) PrimaryOnDark else Primary
+        val unfocusedBorderColor = if (isDark) BorderDefaultDark else BorderDefaultLight
+        val textTertiary = if (isDark) TextTertiaryDark else TextTertiaryLight
+        val textHint = if (isDark) TextHintDark else TextHintLight
+
         ModalBottomSheet(
             onDismissRequest = { onIntent(WalletIntent.ToggleAddCardDialog) },
-            containerColor   = BackgroundLight,
+            containerColor   = containerBg,
         ) {
             Column(
                 modifier = Modifier
@@ -207,7 +216,7 @@ fun WalletScreen(
                 Text(
                     text     = "Yeni Kart Ekle",
                     style    = titleM.copy(fontWeight = FontWeight.Bold),
-                    color    = TextPrimaryLight,
+                    color    = textPrimary,
                     modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp),
                 )
 
@@ -223,28 +232,30 @@ fun WalletScreen(
 
                 Spacer(Modifier.height(24.dp))
 
-                // ── Input fields on white surface
+                // ── Input fields on surface
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp))
-                        .background(Color.White)
+                        .background(if (isDark) SurfaceDark else Color.White)
                         .padding(horizontal = 24.dp, vertical = 20.dp),
                     verticalArrangement = Arrangement.spacedBy(14.dp),
                 ) {
                     // Card number field
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text("Kart Numarası", style = labelS.copy(fontWeight = FontWeight.Bold), color = TextTertiaryLight)
+                        Text("Kart Numarası", style = labelS.copy(fontWeight = FontWeight.Bold), color = textTertiary)
                         OutlinedTextField(
                             value         = state.cardNoInput,
                             onValueChange = { onIntent(WalletIntent.CardNoChanged(it)) },
-                            placeholder   = { Text("0000  0000  0000  0000", color = TextHintLight) },
+                            placeholder   = { Text("0000  0000  0000  0000", color = textHint) },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             singleLine    = true,
                             shape         = RoundedCornerShape(12.dp),
                             colors        = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor   = Primary,
-                                unfocusedBorderColor = BorderDefaultLight,
+                                focusedBorderColor   = primaryColor,
+                                unfocusedBorderColor = unfocusedBorderColor,
+                                focusedTextColor     = textPrimary,
+                                unfocusedTextColor   = textPrimary,
                             ),
                             modifier = Modifier.fillMaxWidth(),
                         )
@@ -259,17 +270,19 @@ fun WalletScreen(
                             verticalArrangement = Arrangement.spacedBy(6.dp),
                             modifier = Modifier.weight(1f),
                         ) {
-                            Text("Son Kullanma", style = labelS.copy(fontWeight = FontWeight.Bold), color = TextTertiaryLight)
+                            Text("Son Kullanma", style = labelS.copy(fontWeight = FontWeight.Bold), color = textTertiary)
                             OutlinedTextField(
                                 value         = state.cardExpiryInput,
                                 onValueChange = { onIntent(WalletIntent.CardExpiryChanged(it)) },
-                                placeholder   = { Text("MM/YY", color = TextHintLight) },
+                                placeholder   = { Text("MM/YY", color = textHint) },
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                 singleLine    = true,
                                 shape         = RoundedCornerShape(12.dp),
                                 colors        = OutlinedTextFieldDefaults.colors(
-                                    focusedBorderColor   = Primary,
-                                    unfocusedBorderColor = BorderDefaultLight,
+                                    focusedBorderColor   = primaryColor,
+                                    unfocusedBorderColor = unfocusedBorderColor,
+                                    focusedTextColor     = textPrimary,
+                                    unfocusedTextColor   = textPrimary,
                                 ),
                                 modifier = Modifier.fillMaxWidth(),
                             )
@@ -278,16 +291,18 @@ fun WalletScreen(
                             verticalArrangement = Arrangement.spacedBy(6.dp),
                             modifier = Modifier.weight(1f),
                         ) {
-                            Text("Kart Sahibi", style = labelS.copy(fontWeight = FontWeight.Bold), color = TextTertiaryLight)
+                            Text("Kart Sahibi", style = labelS.copy(fontWeight = FontWeight.Bold), color = textTertiary)
                             OutlinedTextField(
                                 value         = state.cardHolderInput,
                                 onValueChange = { onIntent(WalletIntent.CardHolderChanged(it)) },
-                                placeholder   = { Text("Ad Soyad", color = TextHintLight) },
+                                placeholder   = { Text("Ad Soyad", color = textHint) },
                                 singleLine    = true,
                                 shape         = RoundedCornerShape(12.dp),
                                 colors        = OutlinedTextFieldDefaults.colors(
-                                    focusedBorderColor   = Primary,
-                                    unfocusedBorderColor = BorderDefaultLight,
+                                    focusedBorderColor   = primaryColor,
+                                    unfocusedBorderColor = unfocusedBorderColor,
+                                    focusedTextColor     = textPrimary,
+                                    unfocusedTextColor   = textPrimary,
                                 ),
                                 modifier = Modifier.fillMaxWidth(),
                             )
@@ -300,7 +315,7 @@ fun WalletScreen(
                         onClick  = { onIntent(WalletIntent.SubmitAddCard) },
                         modifier = Modifier.fillMaxWidth().height(56.dp),
                         shape    = RoundedCornerShape(16.dp),
-                        colors   = ButtonDefaults.buttonColors(containerColor = Primary),
+                        colors   = ButtonDefaults.buttonColors(containerColor = primaryColor),
                     ) {
                         Text("Kartı Kaydet", style = titleL)
                     }
@@ -312,9 +327,12 @@ fun WalletScreen(
 
     // ── Load Balance bottom sheet ─────────────────────────────────────────────
     if (state.showLoadBalanceDialog) {
+        val primaryColor = if (isDark) PrimaryOnDark else Primary
+        val sheetBg = if (isDark) SurfaceDark else Color.White
+
         ModalBottomSheet(
             onDismissRequest = { onIntent(WalletIntent.ToggleLoadBalanceDialog) },
-            containerColor   = Color.White,
+            containerColor   = sheetBg,
         ) {
             Column(
                 modifier = Modifier
@@ -323,25 +341,34 @@ fun WalletScreen(
                     .padding(horizontal = 24.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
-                Text("Bakiye Yükle", style = titleM.copy(fontWeight = FontWeight.Bold), color = TextPrimaryLight)
+                Text("Bakiye Yükle", style = titleM.copy(fontWeight = FontWeight.Bold), color = textPrimary)
                 OutlinedTextField(
                     value         = state.loadAmountInput,
                     onValueChange = { onIntent(WalletIntent.LoadAmountChanged(it)) },
                     label         = { Text("Yüklenecek Tutar (TL)") },
                     placeholder   = { Text("200") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    colors        = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor   = primaryColor,
+                        unfocusedBorderColor = if (isDark) BorderDefaultDark else BorderDefaultLight,
+                        focusedTextColor     = textPrimary,
+                        unfocusedTextColor   = textPrimary,
+                    ),
                     modifier      = Modifier.fillMaxWidth(),
                 )
-                Text("Kullanılacak kart", style = bodyS.copy(fontWeight = FontWeight.Bold), color = TextPrimaryLight)
+                Text("Kullanılacak kart", style = bodyS.copy(fontWeight = FontWeight.Bold), color = textPrimary)
                 state.cards.forEach { card ->
+                    val isSelected = state.selectedCardId == card.id
+                    val itemBg = if (isSelected) {
+                        primaryColor.copy(alpha = if (isDark) 0.15f else 0.08f)
+                    } else {
+                        if (isDark) Color(0xFF1F262F) else Color(0xFFF4F6F9)
+                    }
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(12.dp))
-                            .background(
-                                if (state.selectedCardId == card.id) Primary.copy(alpha = 0.08f)
-                                else Color(0xFFF4F6F9)
-                            )
+                            .background(itemBg)
                             .clickable { onIntent(WalletIntent.SelectCardForLoad(card.id)) }
                             .padding(12.dp),
                         verticalAlignment = Alignment.CenterVertically,
@@ -352,12 +379,12 @@ fun WalletScreen(
                             horizontalArrangement = Arrangement.spacedBy(12.dp),
                         ) {
                             CardBadge(type = card.type)
-                            Text(card.number, style = titleS, color = TextPrimaryLight)
+                            Text(card.number, style = titleS, color = textPrimary)
                         }
                         RadioButton(
-                            selected = state.selectedCardId == card.id,
+                            selected = isSelected,
                             onClick  = { onIntent(WalletIntent.SelectCardForLoad(card.id)) },
-                            colors   = RadioButtonDefaults.colors(selectedColor = Primary),
+                            colors   = RadioButtonDefaults.colors(selectedColor = primaryColor),
                         )
                     }
                 }
@@ -365,7 +392,7 @@ fun WalletScreen(
                     onClick  = { onIntent(WalletIntent.SubmitLoadBalance) },
                     modifier = Modifier.fillMaxWidth().height(56.dp),
                     shape    = RoundedCornerShape(16.dp),
-                    colors   = ButtonDefaults.buttonColors(containerColor = Primary),
+                    colors   = ButtonDefaults.buttonColors(containerColor = primaryColor),
                 ) { Text("Yüklemeyi Onayla", style = titleL) }
                 Spacer(Modifier.height(8.dp))
             }
@@ -447,11 +474,18 @@ private fun BalanceCard(balance: Double, onLoadClick: () -> Unit) {
 
 @Composable
 private fun SavedCardRow(card: PaymentCard) {
+    val isDark = isDarkWallet()
+    val cardBg = if (isDark) SurfaceDark else Color.White
+    val textPrimary = if (isDark) TextPrimaryDark else TextPrimaryLight
+    val textHint = if (isDark) TextHintDark else TextHintLight
+    val successBg = if (isDark) SuccessBackgroundDark else SuccessBackgroundLight
+    val successColor = if (isDark) SuccessStrongDark else SuccessStrong
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .background(Color.White)
+            .background(cardBg)
             .padding(horizontal = 14.dp, vertical = 13.dp),
         verticalAlignment     = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -465,12 +499,12 @@ private fun SavedCardRow(card: PaymentCard) {
                 Text(
                     text  = card.number,
                     style = titleS,
-                    color = TextPrimaryLight,
+                    color = textPrimary,
                 )
                 Text(
                     text  = "Son kullanma ${card.expiryDate}",
                     style = labelS.copy(fontSize = 11.5.sp),
-                    color = TextHintLight,
+                    color = textHint,
                 )
             }
         }
@@ -478,13 +512,13 @@ private fun SavedCardRow(card: PaymentCard) {
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(6.dp))
-                    .background(SuccessBackgroundLight)
+                    .background(successBg)
                     .padding(horizontal = 8.dp, vertical = 3.dp),
             ) {
                 Text(
                     text  = "Varsayılan",
                     style = labelMicro.copy(fontWeight = FontWeight.ExtraBold),
-                    color = SuccessStrong,
+                    color = successColor,
                 )
             }
         }
@@ -522,6 +556,13 @@ private fun CardBadge(type: String) {
 
 @Composable
 private fun TransactionRow(tx: WalletTransaction) {
+    val isDark = isDarkWallet()
+    val textPrimary = if (isDark) TextPrimaryDark else TextPrimaryLight
+    val textHint = if (isDark) TextHintDark else TextHintLight
+    val successBg = if (isDark) SuccessBackgroundDark else SuccessBackgroundLight
+    val successColor = if (isDark) SuccessStrongDark else SuccessStrong
+    val errorBg = if (isDark) ErrorBackgroundDark else ErrorBackgroundLight
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -538,13 +579,13 @@ private fun TransactionRow(tx: WalletTransaction) {
                 modifier = Modifier
                     .size(36.dp)
                     .clip(RoundedCornerShape(11.dp))
-                    .background(if (tx.isIncome) SuccessBackgroundLight else ErrorBackgroundLight),
+                    .background(if (tx.isIncome) successBg else errorBg),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     imageVector        = if (tx.isIncome) Icons.Default.Add else Icons.Default.DirectionsCar,
                     contentDescription = null,
-                    tint               = if (tx.isIncome) SuccessStrong else ErrorDefault,
+                    tint               = if (tx.isIncome) successColor else ErrorDefault,
                     modifier           = Modifier.size(18.dp),
                 )
             }
@@ -552,12 +593,12 @@ private fun TransactionRow(tx: WalletTransaction) {
                 Text(
                     text  = tx.title,
                     style = bodyM.copy(fontWeight = FontWeight.Bold),
-                    color = TextPrimaryLight,
+                    color = textPrimary,
                 )
                 Text(
                     text  = tx.date,
                     style = labelS.copy(fontSize = 11.5.sp),
-                    color = TextHintLight,
+                    color = textHint,
                 )
             }
         }
@@ -565,7 +606,7 @@ private fun TransactionRow(tx: WalletTransaction) {
         Text(
             text  = "${if (tx.isIncome) "+" else "-"}₺${String.format("%.2f", tx.amount)}",
             style = titleS.copy(fontWeight = FontWeight.ExtraBold),
-            color = if (tx.isIncome) SuccessStrong else TextPrimaryLight,
+            color = if (tx.isIncome) successColor else textPrimary,
         )
     }
 }
@@ -714,3 +755,7 @@ fun LiveCardPreview(
         }
     }
 }
+
+@Composable
+private fun isDarkWallet(): Boolean =
+    MaterialTheme.colorScheme.background != Color(BackgroundLight.value)
