@@ -51,9 +51,10 @@ class ActiveRentalViewModel @Inject constructor(
 
             is ActiveRentalIntent.LocationUpdated -> onLocationUpdated(intent.location)
 
-            // Kilitle/Ac icin backend'de bir uc nokta yok (RentalService'te karsiligi
-            // yok); mevcut "Kilidi Ac" karariyla tutarli sekilde no-op birakildi.
-            ActiveRentalIntent.LockToggleClicked -> Unit
+            // Gecici kilit backend'de ayri bir uc nokta gerektirmiyor (RentalService'te
+            // karsiligi yok); yalnizca sayaci durdurmadan yerel UI durumunu degistirir.
+            ActiveRentalIntent.LockToggleClicked ->
+                _uiState.update { it.copy(isVehicleLocked = !it.isVehicleLocked) }
 
             ActiveRentalIntent.EndRentalClicked -> endRental()
         }

@@ -38,7 +38,6 @@ import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.EventSeat
 import androidx.compose.material.icons.filled.LocalGasStation
 import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Remove
@@ -54,7 +53,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -710,34 +708,15 @@ private fun VehicleDetailBottomSheet(
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            Row(horizontalArrangement = Arrangement.spacedBy(11.dp)) {
-                OutlinedButton(
-                    onClick = onReserveClick,
-                    modifier = Modifier
-                        .width(130.dp)
-                        .height(56.dp),
-                    shape = RoundedCornerShape(18.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.7.dp, reserveColor),
-                ) {
-                    Text(text = "Rezerve Et", style = titleL, color = reserveColor)
-                }
-                Button(
-                    onClick = { /* TODO: gercek kiralama baslatma akisi sonraki adimda */ },
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(56.dp),
-                    shape = RoundedCornerShape(18.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Primary, contentColor = TextOnPrimary),
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.LockOpen,
-                        contentDescription = null,
-                        tint = TextOnPrimary,
-                        modifier = Modifier.size(20.dp),
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(text = "Kilidi Aç", style = titleL, color = TextOnPrimary)
-                }
+            Button(
+                onClick = onReserveClick,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                shape = RoundedCornerShape(18.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = reserveColor, contentColor = TextOnPrimary),
+            ) {
+                Text(text = "Rezerve Et", style = titleL, color = TextOnPrimary)
             }
         }
     }
