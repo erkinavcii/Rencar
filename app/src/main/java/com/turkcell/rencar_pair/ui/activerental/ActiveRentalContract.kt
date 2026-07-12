@@ -32,6 +32,7 @@ data class ActiveRentalUiState(
     val startEpochMillis: Long? = null,
     val nowEpochMillis: Long = System.currentTimeMillis(),
     val distanceMeters: Double = 0.0,
+    val isVehicleLocked: Boolean = false,
 ) {
     val elapsedSeconds: Long
         get() {

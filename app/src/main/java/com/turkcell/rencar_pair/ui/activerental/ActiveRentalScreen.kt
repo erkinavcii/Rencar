@@ -13,11 +13,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -181,56 +183,97 @@ fun ActiveRentalScreen(
                     .background(SurfaceDark)
                     .padding(horizontal = 20.dp, vertical = 22.dp),
             ) {
-                Text(
-                    text = "Geçen süre",
-                    style = bodyS,
-                    color = TextTertiaryDark,
-                    modifier = Modifier.align(Alignment.CenterHorizontally),
-                )
-                Text(
-                    text = state.elapsedTimeLabel,
-                    style = displayS,
-                    color = TextPrimaryDark,
-                    modifier = Modifier.align(Alignment.CenterHorizontally),
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-                    StatCard(
-                        label = "Anlık ücret",
-                        value = "₺${"%.2f".format(state.liveCost).replace('.', ',')}",
-                        modifier = Modifier.weight(1f),
+                if (state.isVehicleLocked) {
+                    Icon(
+                        imageVector = Icons.Default.Lock,
+                        contentDescription = null,
+                        tint = TextPrimaryDark,
+                        modifier = Modifier
+                            .size(32.dp)
+                            .align(Alignment.CenterHorizontally),
                     )
-                    StatCard(
-                        label = "Mesafe",
-                        value = "%.1f km".format(state.distanceKm),
-                        modifier = Modifier.weight(1f),
+                    Text(
+                        text = "Araç kilitli",
+                        style = displayS,
+                        color = TextPrimaryDark,
+                        modifier = Modifier
+                            .align(Alignment.CenterHorizontally)
+                            .padding(top = 8.dp),
                     )
-                }
+                    Text(
+                        text = "Sürüşe devam etmek için kilidi açınız",
+                        style = bodyS,
+                        color = TextTertiaryDark,
+                        modifier = Modifier
+                            .align(Alignment.CenterHorizontally)
+                            .padding(top = 4.dp),
+                    )
 
-                Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(20.dp))
 
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-                    OutlinedButton(
+                    Button(
                         onClick = { onIntent(ActiveRentalIntent.LockToggleClicked) },
                         modifier = Modifier
-                            .weight(1f)
+                            .fillMaxWidth()
                             .height(56.dp),
                         shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Primary, contentColor = TextOnPrimary),
                     ) {
-                        Icon(imageVector = Icons.Default.Lock, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
-                        Text(text = "Kilitle / Aç", style = titleL)
+                        Icon(imageVector = Icons.Default.LockOpen, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
+                        Text(text = "Kilidi Aç", style = titleL, color = TextOnPrimary)
                     }
-                    Button(
-                        onClick = { onIntent(ActiveRentalIntent.EndRentalClicked) },
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(56.dp),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = ErrorDefault, contentColor = TextOnPrimary),
-                    ) {
-                        Text(text = "Kiralamayı Bitir", style = titleL, color = TextOnPrimary)
+                } else {
+                    Text(
+                        text = "Geçen süre",
+                        style = bodyS,
+                        color = TextTertiaryDark,
+                        modifier = Modifier.align(Alignment.CenterHorizontally),
+                    )
+                    Text(
+                        text = state.elapsedTimeLabel,
+                        style = displayS,
+                        color = TextPrimaryDark,
+                        modifier = Modifier.align(Alignment.CenterHorizontally),
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                        StatCard(
+                            label = "Anlık ücret",
+                            value = "₺${"%.2f".format(state.liveCost).replace('.', ',')}",
+                            modifier = Modifier.weight(1f),
+                        )
+                        StatCard(
+                            label = "Mesafe",
+                            value = "%.1f km".format(state.distanceKm),
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                        OutlinedButton(
+                            onClick = { onIntent(ActiveRentalIntent.LockToggleClicked) },
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(56.dp),
+                            shape = RoundedCornerShape(16.dp),
+                        ) {
+                            Icon(imageVector = Icons.Default.Lock, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
+                            Text(text = "Kilitle", style = titleL)
+                        }
+                        Button(
+                            onClick = { onIntent(ActiveRentalIntent.EndRentalClicked) },
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(56.dp),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = ErrorDefault, contentColor = TextOnPrimary),
+                        ) {
+                            Text(text = "Kiralamayı Bitir", style = titleL, color = TextOnPrimary)
+                        }
                     }
                 }
             }
