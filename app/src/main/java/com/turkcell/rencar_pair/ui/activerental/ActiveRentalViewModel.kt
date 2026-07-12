@@ -3,6 +3,7 @@ package com.turkcell.rencar_pair.ui.activerental
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.turkcell.rencar_pair.data.model.RentalResponseDto
 import com.turkcell.rencar_pair.data.repository.RentalRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
@@ -66,7 +67,15 @@ class ActiveRentalViewModel @Inject constructor(
             rentalRepository.getRentalDetails(state.rentalId)
                 .onSuccess { rental ->
                     val startMillis = parseIsoUtc(rental.startDate) ?: System.currentTimeMillis()
-                    _uiState.update { it.copy(startEpochMillis = startMillis) }
+                    _uiState.update { current ->
+                        // Tekrar giriste arac RENTED oldugundan GET /vehicles/{id} 404 doner ve
+                        // gunluk ucret navigasyonla 0 gelir; bu durumda kiralamadan turetiyoruz.
+                        // Taze akista gecerli bir fiyat geldiginden ona dokunulmuyor.
+                        val resolvedPrice =
+                            if (current.pricePerDay > 0.0) current.pricePerDay
+                            else derivePricePerDay(rental) ?: current.pricePerDay
+                        current.copy(startEpochMillis = startMillis, pricePerDay = resolvedPrice)
+                    }
                 }
                 .onFailure {
                     // Rezervasyon az once bu ekrana yonlendirdiginden startDate her zaman
@@ -75,6 +84,17 @@ class ActiveRentalViewModel @Inject constructor(
                     _uiState.update { it.copy(startEpochMillis = System.currentTimeMillis()) }
                 }
         }
+    }
+
+    // Backend totalPrice'i gunlukUcret * yukariYuvarlanmis_gun_sayisi (min 1 gun) olarak
+    // hesapliyor. Bu yuzden gunluk ucreti totalPrice / gun_sayisi ile geri turetebiliyoruz.
+    // Turetilen deger AVAILABLE arac listesindeki pricePerDay ile birebir dogrulandi.
+    private fun derivePricePerDay(rental: RentalResponseDto): Double? {
+        if (rental.totalPrice <= 0.0) return null
+        val start = parseIsoUtc(rental.startDate) ?: return null
+        val end = parseIsoUtc(rental.endDate) ?: return null
+        val days = Math.round((end - start).toDouble() / 86_400_000.0).coerceAtLeast(1L)
+        return rental.totalPrice / days
     }
 
     private fun onLocationUpdated(location: ActiveRentalLatLng) {
