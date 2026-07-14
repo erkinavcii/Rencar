@@ -14,4 +14,11 @@ interface VehicleService {
 
     @GET("vehicles/{id}")
     suspend fun getVehicleDetails(@Path("id") id: String): Response<VehicleResponseDto>
+
+    @GET("vehicles/{id}/quote")
+    suspend fun getQuote(
+        @Path("id") id: String,
+        @Query("plan") plan: String,
+        @Query("minutes") minutes: Int
+    ): Response<QuoteResponseDto>
 }

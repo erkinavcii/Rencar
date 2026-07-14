@@ -22,6 +22,12 @@ class VehicleRepositoryImpl @Inject constructor(
         response.body() ?: error("Sunucudan bos yanit alindi.")
     }
 
+    override suspend fun getQuote(id: String, plan: String, minutes: Int): Result<com.turkcell.rencar_pair.data.model.QuoteResponseDto> = runCatching {
+        val response = vehicleService.getQuote(id, plan, minutes)
+        if (!response.isSuccessful) error(response.apiMessage())
+        response.body() ?: error("Sunucudan bos yanit alindi.")
+    }
+
     // API hata body'sindeki "message" alanini parse eder.
     private fun Response<*>.apiMessage(): String {
         val bodyString = errorBody()?.string()

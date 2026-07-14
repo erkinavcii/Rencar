@@ -22,9 +22,16 @@ data class VehicleResponseDto(
     val model: String,
     val type: String,
     val pricePerDay: Double,
-    val status: String,
+    val status: String, // AVAILABLE, RENTED, RESERVED, MAINTENANCE
     val latitude: Double,
     val longitude: Double,
+    val fuelPercent: Int,
+    val rangeKm: Int,
+    val transmission: String, // MANUAL, AUTOMATIC
+    val seats: Int,
+    val segment: String, // ECONOMY, COMFORT, SUV
+    val pricePerHour: Double,
+    val pricePerMinute: Double,
     val createdAt: String,
     val updatedAt: String
 )
