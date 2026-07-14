@@ -1,15 +1,8 @@
 package com.turkcell.rencar_pair.ui.home
 
 import android.Manifest
-import android.content.Context
 import android.content.pm.PackageManager
-import android.graphics.Bitmap
-import android.graphics.Canvas
-import android.graphics.Paint
-import android.graphics.RectF
 import android.annotation.SuppressLint
-import android.location.Location
-import android.os.Looper
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
@@ -70,20 +63,23 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.turkcell.rencar_pair.BuildConfig
 import com.turkcell.rencar_pair.data.local.TokenManager
+import com.turkcell.rencar_pair.ui.common.map.GeoPoint
+import com.turkcell.rencar_pair.ui.common.map.MapMarkerItem
+import com.turkcell.rencar_pair.ui.common.map.RencarMap
+import com.turkcell.rencar_pair.ui.common.map.enableLiveLocation
+import com.turkcell.rencar_pair.ui.common.map.fitCameraToPoints
+import com.turkcell.rencar_pair.ui.common.map.renderMapMarkers
 import com.turkcell.rencar_pair.ui.navigation.NavigationTab
 import com.turkcell.rencar_pair.ui.navigation.RencarBottomNavigation
 import com.turkcell.rencar_pair.ui.theme.BackgroundLight
@@ -121,29 +117,13 @@ import com.turkcell.rencar_pair.ui.theme.titleL
 import com.turkcell.rencar_pair.ui.theme.titleS
 import com.turkcell.rencar_pair.ui.theme.titleXS
 import androidx.compose.ui.text.font.FontWeight
-import org.maplibre.android.MapLibre
-import org.maplibre.android.WellKnownTileServer
-import org.maplibre.android.annotations.IconFactory
 import org.maplibre.android.annotations.Marker
-import org.maplibre.android.annotations.MarkerOptions
 import org.maplibre.android.camera.CameraUpdateFactory
 import org.maplibre.android.geometry.LatLng as MapLibreLatLng
-import org.maplibre.android.geometry.LatLngBounds
-import org.maplibre.android.location.LocationComponentActivationOptions
-import org.maplibre.android.location.engine.LocationEngineCallback
 import org.maplibre.android.location.engine.LocationEngineRequest
-import org.maplibre.android.location.engine.LocationEngineResult
-import org.maplibre.android.location.modes.CameraMode
-import org.maplibre.android.location.modes.RenderMode
 import org.maplibre.android.maps.MapLibreMap
-import org.maplibre.android.maps.MapView
-import org.maplibre.android.maps.Style
-import com.google.android.gms.location.LocationServices
-import com.google.android.gms.location.Priority
-import com.google.android.gms.tasks.CancellationTokenSource
 
-private val KADIKOY_CENTER = MapLibreLatLng(40.9903, 29.0275)
-private const val MAP_STYLE_URL = "https://api.maptiler.com/maps/streets-v4/style.json"
+private val KADIKOY_CENTER = GeoPoint(40.9903, 29.0275)
 
 @SuppressLint("MissingPermission")
 @Composable
@@ -243,63 +223,19 @@ fun HomeRoute(
         val map = mapLibreMap ?: return@DisposableEffect onDispose {}
         if (!uiState.hasLocationPermission) return@DisposableEffect onDispose {}
 
-        val style = map.style ?: return@DisposableEffect onDispose {}
-        val locationComponent = map.locationComponent
-
         val priority = if (uiState.isLocationAccuracyHigh) {
             LocationEngineRequest.PRIORITY_HIGH_ACCURACY
         } else {
             LocationEngineRequest.PRIORITY_BALANCED_POWER_ACCURACY
         }
 
-        val request = LocationEngineRequest.Builder(1000L)
-            .setPriority(priority)
-            .setFastestInterval(500L)
-            .build()
-
-        if (!locationComponent.isLocationComponentActivated) {
-            locationComponent.activateLocationComponent(
-                LocationComponentActivationOptions.builder(context, style)
-                    .useDefaultLocationEngine(true)
-                    .locationEngineRequest(request)
-                    .build(),
+        val disposeLocation = enableLiveLocation(context, map, priority = priority) { location ->
+            viewModel.onIntent(
+                HomeIntent.UserLocationChanged(LatLng(location.latitude, location.longitude)),
             )
         }
-        locationComponent.isLocationComponentEnabled = true
-        locationComponent.renderMode = RenderMode.NORMAL
 
-        val engine = locationComponent.locationEngine
-        val callback = object : LocationEngineCallback<LocationEngineResult> {
-            override fun onSuccess(result: LocationEngineResult) {
-                result.lastLocation?.let { location ->
-                    viewModel.onIntent(
-                        HomeIntent.UserLocationChanged(LatLng(location.latitude, location.longitude)),
-                    )
-                }
-            }
-
-            override fun onFailure(exception: Exception) = Unit
-        }
-
-        // getLastLocation() yalnizca onbellekten okur ve bayat/null donebilir (ekranda
-        // sonsuza dek "Konumunuz araniyor..." takili kalmasina yol acan senaryo budur).
-        // Google'in onerdigi FusedLocationProviderClient.getCurrentLocation() ise geregi
-        // haldeyse onbellegi kullanir, degilse GPS/ag saglayicisindan zorla taze bir fix
-        // ister; ilk konum bu yuzden bununla aliniyor.
-        LocationServices.getFusedLocationProviderClient(context)
-            .getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, CancellationTokenSource().token)
-            .addOnSuccessListener { location ->
-                location?.let {
-                    viewModel.onIntent(
-                        HomeIntent.UserLocationChanged(LatLng(it.latitude, it.longitude)),
-                    )
-                }
-            }
-        engine?.requestLocationUpdates(request, callback, Looper.getMainLooper())
-
-        onDispose {
-            engine?.removeLocationUpdates(callback)
-        }
+        onDispose { disposeLocation() }
     }
 
     // İlk açılışta kullanıcı konumuna tek seferlik zoom ve Logcat izi.
@@ -321,12 +257,14 @@ fun HomeRoute(
 
     LaunchedEffect(uiState.visibleVehicles, mapLibreMap) {
         val map = mapLibreMap ?: return@LaunchedEffect
-        markerVehicleIds = renderVehicleMarkers(context, map, uiState.visibleVehicles, isDark)
+        val items = uiState.visibleVehicles.map { it.toMapMarkerItem(isDark) }
+        markerVehicleIds = renderMapMarkers(context, map, items)
     }
 
     LaunchedEffect(uiState.vehicles, mapLibreMap) {
         val map = mapLibreMap ?: return@LaunchedEffect
-        fitCameraToVehicles(context, map, uiState.vehicles)
+        val points = uiState.vehicles.map { GeoPoint(it.position.latitude, it.position.longitude) }
+        fitCameraToPoints(context, map, points)
     }
 
     LaunchedEffect(mapLibreMap) {
@@ -384,7 +322,11 @@ fun HomeScreen(
                 .fillMaxSize()
                 .padding(bottom = paddingValues.calculateBottomPadding()),
         ) {
-            RencarMapView(modifier = Modifier.fillMaxSize(), onMapReady = onMapReady)
+            RencarMap(
+                modifier = Modifier.fillMaxSize(),
+                initialCameraTarget = KADIKOY_CENTER,
+                onMapReady = onMapReady,
+            )
 
             if (state.isLoading) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -1046,137 +988,21 @@ private fun FilterChip(
     }
 }
 
-@Composable
-private fun RencarMapView(
-    modifier: Modifier = Modifier,
-    onMapReady: (MapLibreMap) -> Unit,
-) {
-    val context = LocalContext.current
-    val lifecycleOwner = LocalLifecycleOwner.current
-    val mapView = remember {
-        MapLibre.getInstance(context, BuildConfig.MAPTILER_API_KEY, WellKnownTileServer.MapTiler)
-        MapView(context)
+// Ortak ui/common/map paketi hicbir feature'in domain tipini (VehicleMarker) bilmedigi
+// icin bu donusum Home'a ozel burada tutuluyor; kategori/kullanimda rengi de burada secilir.
+private fun VehicleMarker.toMapMarkerItem(isDark: Boolean): MapMarkerItem {
+    val color = when {
+        inUse -> if (isDark) CategoryKullanımdaDark else CategoryKullanimdaLight
+        category == VehicleCategory.EKONOMIK -> CategoryEkonomik
+        category == VehicleCategory.KONFOR -> CategoryKonfor
+        else -> CategorySuv
     }
-
-    DisposableEffect(lifecycleOwner) {
-        val observer = LifecycleEventObserver { _, event ->
-            when (event) {
-                Lifecycle.Event.ON_CREATE -> mapView.onCreate(null)
-                Lifecycle.Event.ON_START -> mapView.onStart()
-                Lifecycle.Event.ON_RESUME -> mapView.onResume()
-                Lifecycle.Event.ON_PAUSE -> mapView.onPause()
-                Lifecycle.Event.ON_STOP -> mapView.onStop()
-                Lifecycle.Event.ON_DESTROY -> mapView.onDestroy()
-                else -> Unit
-            }
-        }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
-    }
-
-    AndroidView(
-        modifier = modifier,
-        factory = {
-            mapView.getMapAsync { map ->
-                map.setStyle(Style.Builder().fromUri("$MAP_STYLE_URL?key=${BuildConfig.MAPTILER_API_KEY}")) {
-                    map.moveCamera(CameraUpdateFactory.newLatLngZoom(KADIKOY_CENTER, 14.0))
-                    onMapReady(map)
-                }
-            }
-            mapView
-        },
+    return MapMarkerItem(
+        id = id,
+        position = GeoPoint(position.latitude, position.longitude),
+        label = priceLabel,
+        color = color,
     )
-}
-
-private const val CAMERA_FIT_PADDING_DP = 56
-
-// Sabit Kadikoy merkezi yalnizca veri gelene kadarki nötr baslangic konumudur (bu sirada
-// isLoading spinner haritayi zaten ortuyor); araclar yuklenince kamera hepsini kapsayacak
-// sekilde otomatik kaydirilir.
-private fun fitCameraToVehicles(context: Context, map: MapLibreMap, vehicles: List<VehicleMarker>) {
-    when {
-        vehicles.isEmpty() -> Unit
-        vehicles.size == 1 -> {
-            val point = vehicles.first().position
-            map.animateCamera(
-                CameraUpdateFactory.newLatLngZoom(MapLibreLatLng(point.latitude, point.longitude), 14.0),
-            )
-        }
-        else -> {
-            val bounds = LatLngBounds.Builder().apply {
-                vehicles.forEach { include(MapLibreLatLng(it.position.latitude, it.position.longitude)) }
-            }.build()
-            val paddingPx = (CAMERA_FIT_PADDING_DP * context.resources.displayMetrics.density).toInt()
-            map.animateCamera(CameraUpdateFactory.newLatLngBounds(bounds, paddingPx))
-        }
-    }
-}
-
-private fun renderVehicleMarkers(
-    context: Context,
-    map: MapLibreMap,
-    vehicles: List<VehicleMarker>,
-    isDark: Boolean,
-): Map<Marker, String> {
-    map.markers.toList().forEach { map.removeMarker(it) }
-    val iconFactory = IconFactory.getInstance(context)
-    val markerToVehicleId = mutableMapOf<Marker, String>()
-    vehicles.forEach { vehicle ->
-        val color = when {
-            vehicle.inUse -> if (isDark) CategoryKullanımdaDark else CategoryKullanimdaLight
-            vehicle.category == VehicleCategory.EKONOMIK -> CategoryEkonomik
-            vehicle.category == VehicleCategory.KONFOR -> CategoryKonfor
-            else -> CategorySuv
-        }
-        val bitmap = createPriceMarkerBitmap(vehicle.priceLabel, color.toArgb())
-        val marker = map.addMarker(
-            MarkerOptions()
-                .position(MapLibreLatLng(vehicle.position.latitude, vehicle.position.longitude))
-                .icon(iconFactory.fromBitmap(bitmap)),
-        )
-        markerToVehicleId[marker] = vehicle.id
-    }
-    return markerToVehicleId
-}
-
-private fun createPriceMarkerBitmap(label: String, backgroundColor: Int): Bitmap {
-    val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = android.graphics.Color.WHITE
-        textSize = 32f
-        isFakeBoldText = true
-    }
-    val paddingH = 24f
-    val paddingV = 16f
-    val tailHeight = 14f
-    val tailWidth = 18f
-    val textWidth = textPaint.measureText(label)
-    val width = (textWidth + paddingH * 2).toInt().coerceAtLeast(60)
-    val bubbleHeight = (textPaint.textSize + paddingV * 2)
-    val height = (bubbleHeight + tailHeight).toInt()
-
-    val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
-    val canvas = Canvas(bitmap)
-    val backgroundPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = backgroundColor }
-
-    val bubbleRect = RectF(0f, 0f, width.toFloat(), bubbleHeight)
-    canvas.drawRoundRect(bubbleRect, bubbleHeight / 2.5f, bubbleHeight / 2.5f, backgroundPaint)
-
-    val tailPath = android.graphics.Path().apply {
-        val centerX = width / 2f
-        moveTo(centerX - tailWidth / 2f, bubbleHeight - 2f)
-        lineTo(centerX + tailWidth / 2f, bubbleHeight - 2f)
-        lineTo(centerX, bubbleHeight + tailHeight)
-        close()
-    }
-    canvas.drawPath(tailPath, backgroundPaint)
-
-    canvas.drawText(
-        label,
-        paddingH,
-        bubbleHeight / 2f - (textPaint.descent() + textPaint.ascent()) / 2f,
-        textPaint,
-    )
-    return bitmap
 }
 
 @Composable
