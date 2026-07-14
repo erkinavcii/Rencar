@@ -1,8 +1,10 @@
 package com.turkcell.rencar_pair.ui.activerental
 
-import android.content.Context
+import android.Manifest
+import android.content.pm.PackageManager
 import android.location.Location
-import android.os.Looper
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -41,13 +43,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.turkcell.rencar_pair.BuildConfig
+import com.turkcell.rencar_pair.ui.common.map.GeoPoint
+import com.turkcell.rencar_pair.ui.common.map.RencarMap
+import com.turkcell.rencar_pair.ui.common.map.enableLiveLocation
 import com.turkcell.rencar_pair.ui.theme.BackgroundDark
 import com.turkcell.rencar_pair.ui.theme.ErrorDefault
 import com.turkcell.rencar_pair.ui.theme.Primary
@@ -62,19 +63,12 @@ import com.turkcell.rencar_pair.ui.theme.labelS
 import com.turkcell.rencar_pair.ui.theme.statValue
 import com.turkcell.rencar_pair.ui.theme.titleL
 import kotlinx.coroutines.delay
-import org.maplibre.android.MapLibre
-import org.maplibre.android.WellKnownTileServer
-import org.maplibre.android.location.LocationComponentActivationOptions
-import org.maplibre.android.location.engine.LocationEngineCallback
-import org.maplibre.android.location.engine.LocationEngineRequest
-import org.maplibre.android.location.engine.LocationEngineResult
 import org.maplibre.android.location.modes.CameraMode
-import org.maplibre.android.location.modes.RenderMode
 import org.maplibre.android.maps.MapLibreMap
-import org.maplibre.android.maps.MapView
-import org.maplibre.android.maps.Style
 
-private const val MAP_STYLE_URL = "https://api.maptiler.com/maps/streets-v4/style.json"
+// Sabit Kadikoy merkezi, canli konum takibi (CameraMode.TRACKING) ilk GPS fix'i alana
+// kadarki notr baslangic konumudur; Ana Harita ekraniyla ayni yaklasim.
+private val INITIAL_CAMERA_TARGET = GeoPoint(40.9903, 29.0275)
 
 @Composable
 fun ActiveRentalRoute(
@@ -93,6 +87,34 @@ fun ActiveRentalRoute(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+    val context = LocalContext.current
+
+    // Home ekranindaki izin akisiyla ayni: bu ekran acildiginda konum izni yoksa
+    // istenir. Onceden bu kontrol hic yoktu, canli konum izinsiz cagriliyordu.
+    var hasLocationPermission by remember { mutableStateOf(false) }
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions(),
+    ) { results ->
+        hasLocationPermission = results[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
+            results[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+    }
+
+    LaunchedEffect(Unit) {
+        val alreadyGranted = ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.ACCESS_FINE_LOCATION,
+        ) == PackageManager.PERMISSION_GRANTED
+        if (alreadyGranted) {
+            hasLocationPermission = true
+        } else {
+            permissionLauncher.launch(
+                arrayOf(
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.ACCESS_COARSE_LOCATION,
+                ),
+            )
+        }
+    }
 
     LaunchedEffect(Unit) {
         while (true) {
@@ -122,6 +144,7 @@ fun ActiveRentalRoute(
         state = uiState,
         onIntent = viewModel::onIntent,
         snackbarHostState = snackbarHostState,
+        hasLocationPermission = hasLocationPermission,
         modifier = modifier,
     )
 }
@@ -131,6 +154,7 @@ fun ActiveRentalScreen(
     state: ActiveRentalUiState,
     onIntent: (ActiveRentalIntent) -> Unit,
     snackbarHostState: SnackbarHostState,
+    hasLocationPermission: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     Scaffold(
@@ -145,6 +169,7 @@ fun ActiveRentalScreen(
         ) {
             ActiveRentalMapView(
                 modifier = Modifier.fillMaxSize(),
+                hasLocationPermission = hasLocationPermission,
                 onLocationUpdate = { location ->
                     onIntent(ActiveRentalIntent.LocationUpdated(ActiveRentalLatLng(location.latitude, location.longitude)))
                 },
@@ -294,84 +319,34 @@ private fun StatCard(label: String, value: String, modifier: Modifier = Modifier
     }
 }
 
-// Home ekranindaki RencarMapView/enableLocationComponent ile ayni kuruluma sahip,
-// bu ekrana ozel kucuk bir harita bileseni: yalnizca canli konum (mavi nokta) icin;
+// Bu ekrana ozel kucuk bir harita bileseni: yalnizca canli konum (mavi nokta) icin;
 // arac marker'lari veya kat edilen yolun cizgisi bu adimda cizilmiyor (kapsam disi).
+// hasLocationPermission false iken enableLiveLocation hic cagrilmaz (once izin yoktu,
+// canli konum izinsiz cagriliyordu).
 @Composable
 private fun ActiveRentalMapView(
     modifier: Modifier = Modifier,
+    hasLocationPermission: Boolean,
     onLocationUpdate: (Location) -> Unit,
 ) {
     val context = LocalContext.current
-    val lifecycleOwner = LocalLifecycleOwner.current
-    val mapView = remember {
-        MapLibre.getInstance(context, BuildConfig.MAPTILER_API_KEY, WellKnownTileServer.MapTiler)
-        MapView(context)
-    }
     var mapLibreMap by remember { mutableStateOf<MapLibreMap?>(null) }
 
-    DisposableEffect(lifecycleOwner) {
-        val observer = LifecycleEventObserver { _, event ->
-            when (event) {
-                Lifecycle.Event.ON_CREATE -> mapView.onCreate(null)
-                Lifecycle.Event.ON_START -> mapView.onStart()
-                Lifecycle.Event.ON_RESUME -> mapView.onResume()
-                Lifecycle.Event.ON_PAUSE -> mapView.onPause()
-                Lifecycle.Event.ON_STOP -> mapView.onStop()
-                Lifecycle.Event.ON_DESTROY -> mapView.onDestroy()
-                else -> Unit
-            }
-        }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
-    }
-
-    LaunchedEffect(mapLibreMap) {
-        val map = mapLibreMap ?: return@LaunchedEffect
-        enableLiveLocation(context, map, onLocationUpdate)
-    }
-
-    AndroidView(
-        modifier = modifier,
-        factory = {
-            mapView.getMapAsync { map ->
-                map.setStyle(Style.Builder().fromUri("$MAP_STYLE_URL?key=${BuildConfig.MAPTILER_API_KEY}")) {
-                    mapLibreMap = map
-                }
-            }
-            mapView
-        },
-    )
-}
-
-private fun enableLiveLocation(context: Context, map: MapLibreMap, onLocationUpdate: (Location) -> Unit) {
-    val style = map.style ?: return
-    val locationComponent = map.locationComponent
-    val request = LocationEngineRequest.Builder(1000L)
-        .setPriority(LocationEngineRequest.PRIORITY_HIGH_ACCURACY)
-        .setFastestInterval(500L)
-        .build()
-    if (!locationComponent.isLocationComponentActivated) {
-        locationComponent.activateLocationComponent(
-            LocationComponentActivationOptions.builder(context, style)
-                .useDefaultLocationEngine(true)
-                .locationEngineRequest(request)
-                .build(),
+    DisposableEffect(mapLibreMap, hasLocationPermission) {
+        val map = mapLibreMap
+        if (map == null || !hasLocationPermission) return@DisposableEffect onDispose {}
+        val disposeLocation = enableLiveLocation(
+            context = context,
+            map = map,
+            cameraMode = CameraMode.TRACKING,
+            onLocationUpdate = onLocationUpdate,
         )
+        onDispose { disposeLocation() }
     }
-    locationComponent.isLocationComponentEnabled = true
-    locationComponent.renderMode = RenderMode.NORMAL
-    locationComponent.setCameraMode(CameraMode.TRACKING)
-    locationComponent.zoomWhileTracking(16.0)
 
-    val engine = locationComponent.locationEngine
-    val callback = object : LocationEngineCallback<LocationEngineResult> {
-        override fun onSuccess(result: LocationEngineResult) {
-            result.lastLocation?.let(onLocationUpdate)
-        }
-
-        override fun onFailure(exception: Exception) = Unit
-    }
-    engine?.getLastLocation(callback)
-    engine?.requestLocationUpdates(request, callback, Looper.getMainLooper())
+    RencarMap(
+        modifier = modifier,
+        initialCameraTarget = INITIAL_CAMERA_TARGET,
+        onMapReady = { mapLibreMap = it },
+    )
 }
