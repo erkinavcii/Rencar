@@ -293,7 +293,7 @@
 
 - Güncelleme (06.07.2026): "Kiralamayı Bitir" artık gerçekten "Yolculuk Tamamlandı" ekranına yönlendiriyor; bkz. aşağıdaki karar.
 
-- Bilinen Basitleştirme: Harita bileşeni (`ActiveRentalMapView`), Ana Harita'daki `RencarMapView`/`enableLocationComponent` ile neredeyse aynı kurulumu tekrar ediyor (ayrı dosyada, ortak bir bileşene çıkarılmadı); zaman baskısıyla bilinçli bir kod tekrarı, ileride ortak bir `ui/common/` haritakomponentine refactor edilebilir.
+- Bilinen Basitleştirme (Çözüldü — 14.07.2026): Harita bileşeni (`ActiveRentalMapView`), Ana Harita'daki `RencarMapView`/`enableLocationComponent` ile neredeyse aynı kurulumu tekrar ediyordu (ayrı dosyada, ortak bir bileşene çıkarılmamıştı); zaman baskısıyla bilinçli bir kod tekrarıydı. Bkz. "Harita Bileşeni — Ortak `ui/common/map` Paketine Çıkarılması" kararı.
 
 
 ### Yolculuk Tamamlandı Ekranı (Ödeme Özeti) — Zincirin Son Ekranı
@@ -309,3 +309,31 @@
 - Kart Bilgisi: "Öde" ekranındaki kart etiketi (`VISA • 4291` vb.) `WalletRepository.getCards()`'tan gerçek (fake ama tutarlı) veriyle çekiliyor; ayrıca hardcoded bir kart metni yazılmadı. "Değiştir" butonu no-op (kart değiştirme akışı kapsam dışı).
 
 - Ödeme Sonrası: Başarılı ödemede Home'a dönülüyor (`popUpTo(0){inclusive=true}` ile geri yığın temizleniyor — Rezervasyon → Araç Durumu → Kiralama Aktif → Yolculuk Tamamlandı zincirine geri dönülemez). Bu, üç ekranlık kiralama akışının (Rezervasyon Onayı → Araç Durumu → Kiralama Aktif → Yolculuk Tamamlandı) son adımıdır.
+
+
+### Harita Bileşeni — Ortak `ui/common/map` Paketine Çıkarılması
+
+- Karar: Ana Harita (`RencarMapView`) ve Kiralama Aktif (`ActiveRentalMapView`) ekranlarındaki neredeyse birebir aynı MapLibre kurulum/lifecycle/marker/kamera/konum kodu, tek bir `ui/common/map/` paketine çıkarıldı. Bu paket herhangi bir ekranın ViewModel'ini, State/Intent/Effect sözleşmesini veya domain modelini (`VehicleMarker` gibi) bilmez; yalnızca saf, parametrik composable ve fonksiyonlardan oluşur.
+
+- Son Güncelleme Tarihi: 14.07.2026
+
+- Kapsam: `RencarMap.kt` (MapLibre kurulum/lifecycle/style composable'i + `GeoPoint`), `RencarMapMarkers.kt` (`MapMarkerItem` + `renderMapMarkers`, generic etiket/renk tabanlı marker çizimi), `RencarMapCamera.kt` (`fitCameraToPoints`), `RencarMapLocation.kt` (`enableLiveLocation`, Home ve ActiveRental'ın konum dinleme mantığının birleşimi, `cameraMode` parametrik).
+
+- Feature'a Özel Kalanlar: Araç kategorisine/kullanımda durumuna göre marker rengi seçimi (`VehicleMarker.toMapMarkerItem`) bilinçli olarak `HomeScreen.kt` içinde bırakıldı, ortak pakete taşınmadı — bu Home'a özel bir iş kuralı, ortak paketin genel/domain-agnostic kalması gerekiyordu.
+
+- Veri Kaynağından Bağımsızlık: Ortak paketteki composable ve fonksiyonlar, marker/konum verisinin nereden geldiğini (tek seferlik `GET /vehicles` listesi mi, ileride bir WebSocket akışı mı) bilmez; yalnızca kendilerine verilen `List<MapMarkerItem>`/konum callback'ini render eder. Canlı araç konumu için bir WebSocket entegrasyonu ileride eklenirse, bu paket değişmeden kalması beklenir — yalnızca ilgili ekranın ViewModel/Repository katmanı güncellenir.
+
+- Düzeltilen Yan Etki: `enableLiveLocation` artık bir dispose fonksiyonu döndürüyor. ActiveRental'ın önceki `enableLiveLocation` çağrısı `LaunchedEffect` içindeydi ve konum güncellemelerini hiçbir zaman durdurmuyordu (kaynak sızıntısı); artık her iki ekranda da `DisposableEffect` ile doğru şekilde dispose ediliyor.
+
+- Bilinçli Sınır: Bu refactor yalnızca harita render/konum katmanını birleştirir; canlı araç konumu için bir WebSocket veri kaynağı bu kararın kapsamında değildir, ayrı bir karar olarak ele alınmalıdır.
+
+
+### Kiralama Aktif Ekranı — Eksik Konum İzni Kontrolü Düzeltildi
+
+- Karar: `ActiveRentalScreen.kt`, harita refactor'üne kadar konum iznini hiç kontrol etmiyordu (Ana Harita'nın aksine); `activateLocationComponent` doğrudan izin varsayımıyla çağrılıyordu (`@SuppressLint("MissingPermission")` olmadan). Bu, yukarıdaki harita paketi refactor'ü sırasında fark edilen ayrı bir hataydı; refactor'den bağımsız, kendi başına bir düzeltmedir.
+
+- Son Güncelleme Tarihi: 14.07.2026
+
+- Uygulama: `ActiveRentalRoute`'a, Ana Harita'daki ile aynı desende bir izin akışı eklendi (`rememberLauncherForActivityResult` + `ContextCompat.checkSelfPermission`). Sonuç, `ActiveRentalViewModel`/`ActiveRentalContract`'a değil, yalnızca yerel Compose state'ine (`hasLocationPermission`) yazılıyor ve `ActiveRentalScreen` → `ActiveRentalMapView` parametre zinciriyle taşınıyor. `enableLiveLocation` artık yalnızca izin varken çağrılıyor.
+
+- Kapsam Dışı Bırakılan: İznin `ActiveRentalUiState`'e taşınması (Home'daki `hasLocationPermission` alanıyla aynı desen) bu adımda yapılmadı — bu, Contract/ViewModel değişikliği gerektirir ve harita refactor'ünün onaylanan dosya kapsamının (yalnızca `ActiveRentalScreen.kt`) dışındadır. İleride gerekirse ayrı bir adımda ele alınabilir.
