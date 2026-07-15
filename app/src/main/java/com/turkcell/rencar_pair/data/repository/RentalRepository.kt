@@ -36,7 +36,10 @@ interface RentalRepository {
         fileName: String = "photo.jpg",
     ): Result<RentalPhotosStateDto>
 
-    suspend fun getActiveRental(): Result<ActiveRentalResponseDto>
+    // Aktif kiralama yoksa (404) basarili sonuc icinde null doner; gercek hatalarda
+    // (ag/sunucu) Result.failure doner. GET /rentals'in aksine (bilinen 500 hatasi)
+    // bu uc nokta canlida calisiyor - aktif kiralama kontrolu icin bu kullanilmali.
+    suspend fun getActiveRental(): Result<ActiveRentalResponseDto?>
 
     suspend fun getStats(month: String? = null): Result<RentalStatsResponseDto>
 }

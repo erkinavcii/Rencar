@@ -363,3 +363,16 @@
 - Uygulama: `ReservationViewModel`'e `ReservationRepository` (Batch 3'te yazılmış ama hiçbir ekrandan çağrılmayan veri katmanı) enjekte edildi. `confirmReservation()` artık önce `reservationRepository.reserveVehicle(vehicleId)` çağırıyor; yalnızca bu başarılı olursa `rentalRepository.createRental(...)`'a geçiyor. Rezervasyon başarısız olursa `createRental` hiç çağrılmadan `ReservationEffect.ShowError` gönderiliyor.
 
 - Bilinçli Sınırlama (Geçici): Bu, Batch 5'in tam kapsamı (15 dakikalık ücretsiz tutma süresini gösteren ayrı bir "ReservationHold" geri sayım ekranı, plan seçimine göre `PER_MINUTE`/`HOURLY`/`DAILY` eşlemesi) değildir — yalnızca akışı çalışır hale getiren minimum bağlantıdır. Kullanıcı rezervasyon süresi (varsayılan 15 dk) dolmadan "Rezervasyonu Tamamla"ya basmazsa mevcut davranışta bir geri sayım/uyarı gösterilmiyor; zaten aktif bir rezervasyonu varsa (ör. ekrana tekrar girildiyse) `reserveVehicle` 409 ile başarısız olur ve kullanıcı hata mesajı görür. Bu senaryoların düzgün ele alınması (rezervasyonu iptal etme, geri sayım UI'ı) Batch 5'e bırakıldı.
+
+
+### Ana Harita — Aktif Kiralamaya Dönüş Banner'ı `GET /rentals/active`'e Taşındı
+
+- Karar: `HomeViewModel.checkActiveRental()`, aktif kiralamayı tespit etmek için `rentalRepository.getMyRentals()` (`GET /rentals`) çağırıyordu. Bu uç nokta canlı API'de `500` döndüğü için (yukarıdaki "Bilinen Backend Sınırı" kararı) banner hiçbir zaman görünmüyordu; kullanıcı kiralama akışının ortasında (ör. Araç Durumu/foto ekranından geri tuşuyla çıkınca) Home'a düşüyor, ne yeni bir araç rezerve edebiliyor (zaten aktif kiralaması olduğu için 409) ne de aktif kiralamasına geri dönebiliyordu (banner görünmediği için). Bu canlı testte ortaya çıktı ve tespit edildi.
+
+- Son Güncelleme Tarihi: 16.07.2026
+
+- Uygulama: `RentalRepository.getActiveRental()`'in dönüş tipi `Result<ActiveRentalResponseDto>` → `Result<ActiveRentalResponseDto?>` yapıldı; `RentalRepositoryImpl` 404'ü (aktif kiralama yok — Batch V'de doğrulanmış normal durum) `Result.success(null)` olarak, diğer tüm hataları `Result.failure` olarak modelliyor. `HomeViewModel.checkActiveRental()` artık `getMyRentals()` yerine bunu çağırıyor. Ayrıca `GET /rentals/active` cevabında araç özeti (`vehicle: RentalVehicleSummaryDto`) zaten gömülü geldiğinden, önceden yapılan ayrı `vehicleRepository.getVehicleDetails(vehicleId)` çağrısı (`GET /vehicles/{id}`, yalnızca AVAILABLE araçları döndürdüğü için RENTED — yani tam da aktif kiralaması olan — bir araç için hep 404 dönüyordu) kaldırıldı.
+
+- Bilinen Sınır (değişmedi): `ActiveRentalVehicle.pricePerDay` alanı `RentalVehicleSummaryDto`'da bulunmadığından `0.0` ile dolduruluyor; banner'da fiyat gösterilmiyor, yalnızca marka/model/plaka gösteriliyor (önceki davranışla aynı — vehicle detayı hiç alınamadığında zaten aynı sonuç oluyordu).
+
+- Kapsam Dışı Bırakılan: `HistoryRepositoryImpl.getHistory()` hâlâ `GET /rentals`'a bağımlı (Geçmiş ekranının kendisi liste görünümü gerektiriyor, `/rentals/active` bunun yerine geçemez); bu, backend'in `500` hatasını düzeltmesini bekliyor.

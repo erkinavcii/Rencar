@@ -93,10 +93,11 @@ class RentalRepositoryImpl @Inject constructor(
         response.body() ?: error("Sunucudan bos yanit alindi.")
     }
 
-    override suspend fun getActiveRental(): Result<ActiveRentalResponseDto> = runCatching {
+    override suspend fun getActiveRental(): Result<ActiveRentalResponseDto?> = runCatching {
         val response = rentalService.getActiveRental()
+        if (response.code() == 404) return@runCatching null
         if (!response.isSuccessful) error(response.apiMessage())
-        response.body() ?: error("Sunucudan bos yanit alindi.")
+        response.body()
     }
 
     override suspend fun getStats(month: String?): Result<RentalStatsResponseDto> = runCatching {

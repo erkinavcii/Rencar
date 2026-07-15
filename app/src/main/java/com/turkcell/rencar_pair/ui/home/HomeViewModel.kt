@@ -102,27 +102,26 @@ class HomeViewModel @Inject constructor(
 
     private fun checkActiveRental(autoNavigate: Boolean) {
         viewModelScope.launch {
-            rentalRepository.getMyRentals()
-                .onSuccess { rentals ->
-                    val active = rentals.find { it.status == "ACTIVE" }
+            // GET /rentals (getMyRentals) canlida 500 doner (bilinen backend hatasi);
+            // aktif kiralama kontrolu bu yuzden calisan GET /rentals/active uzerinden
+            // yapiliyor. Bu uc nokta arac ozetini (brand/model/plate) zaten gomulu
+            // dondurdugunden ayrica bir GET /vehicles/{id} cagrisina gerek kalmiyor
+            // (o cagri zaten RENTED araclar icin 404 dondugunden hicbir zaman calismazdi).
+            rentalRepository.getActiveRental()
+                .onSuccess { active ->
                     if (active == null) {
                         _uiState.update { it.copy(activeRental = null) }
                         return@onSuccess
                     }
-                    // Arac detayi alinamasa bile kullanicinin aktif kiralamasina
-                    // donebilmesi gerekir; marka/model/plaka olmadan da devam ediyoruz.
-                    val vehicle = vehicleRepository.getVehicleDetails(active.vehicleId).getOrNull()
                     val summary = ActiveRentalSummary(
                         rentalId = active.id,
                         vehicleId = active.vehicleId,
-                        vehicle = vehicle?.let {
-                            ActiveRentalVehicle(
-                                brand = it.brand,
-                                model = it.model,
-                                plate = it.plate,
-                                pricePerDay = it.pricePerDay,
-                            )
-                        },
+                        vehicle = ActiveRentalVehicle(
+                            brand = active.vehicle.brand,
+                            model = active.vehicle.model,
+                            plate = active.vehicle.plate,
+                            pricePerDay = 0.0, // RentalVehicleSummaryDto pricePerDay tasimiyor
+                        ),
                     )
                     _uiState.update { it.copy(activeRental = summary) }
                     if (autoNavigate) {
@@ -130,10 +129,11 @@ class HomeViewModel @Inject constructor(
                     }
                 }
                 .onFailure {
-                    // Kiralama listesi cekilemedi. Mevcut banner'i silmiyoruz: gecici bir
-                    // ag hatasi yuzunden kullanicinin aktif kiralamaya erisimini kesmek,
-                    // eski bir banner'i bir sure daha gostermekten daha kotu. Hatayi sadece
-                    // acilista bildiriyoruz; her ON_RESUME'da snackbar gostermek gurultu olur.
+                    // Gercek bir ag/sunucu hatasi (404 zaten onSuccess'te null olarak
+                    // ele alindi). Mevcut banner'i silmiyoruz: gecici bir hata yuzunden
+                    // kullanicinin aktif kiralamaya erisimini kesmek, eski bir banner'i
+                    // bir sure daha gostermekten daha kotu. Hatayi sadece acilista
+                    // bildiriyoruz; her ON_RESUME'da snackbar gostermek gurultu olur.
                     if (autoNavigate) {
                         _effect.send(HomeEffect.ShowError("Aktif kiralama bilgisi alınamadı."))
                     }
