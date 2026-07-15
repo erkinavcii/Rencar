@@ -67,22 +67,23 @@ class HistoryRepositoryImpl @Inject constructor(
 
         HistorySummary(
             monthlyTripCount = thisMonthCompleted.size,
-            monthlySpending = thisMonthCompleted.sumOf { it.totalPrice },
+            monthlySpending = thisMonthCompleted.sumOf { it.totalPrice ?: 0.0 },
             totalTripCount = completed.size,
-            totalSpending = completed.sumOf { it.totalPrice },
+            totalSpending = completed.sumOf { it.totalPrice ?: 0.0 },
             trips = trips,
         )
     }
 
     private fun RentalResponseDto.toHistoryTrip(vehicleInfo: VehicleInfo): HistoryTrip {
         val start = runCatching { isoFormat.parse(startDate) }.getOrNull()
-        val end = runCatching { isoFormat.parse(endDate) }.getOrNull()
 
         val dateLabel = start?.let { displayFormat.format(it) } ?: startDate
         val fullDateLabel = start?.let { fullDisplayFormat.format(it) } ?: startDate
-        val durationMinutes = if (start != null && end != null) abs(end.time - start.time) / 60000 else 0L
-        val durationLabel = if (start != null && end != null) {
-            if (durationMinutes < 60) "$durationMinutes dk" else "${durationMinutes / 60} sa ${durationMinutes % 60} dk"
+        // endDate yalniz DAILY planda dolu; PER_MINUTE/HOURLY'de sure icin backend'in
+        // zaten hesapladigi durationMinutes alani kullaniliyor (plan-bagimsiz, dogru kaynak).
+        val durationMinutesValue = durationMinutes.toLong()
+        val durationLabel = if (durationMinutesValue > 0) {
+            if (durationMinutesValue < 60) "$durationMinutesValue dk" else "${durationMinutesValue / 60} sa ${durationMinutesValue % 60} dk"
         } else {
             "-"
         }
@@ -107,8 +108,8 @@ class HistoryRepositoryImpl @Inject constructor(
             fullDateLabel = fullDateLabel,
             startDateMillis = start?.time ?: 0L,
             durationLabel = durationLabel,
-            durationMinutes = durationMinutes,
-            price = totalPrice,
+            durationMinutes = durationMinutesValue,
+            price = totalPrice ?: 0.0,
             routeStart = routeStart,
             routeEnd = routeEnd,
         )
