@@ -90,11 +90,14 @@ class ActiveRentalViewModel @Inject constructor(
     // hesapliyor. Bu yuzden gunluk ucreti totalPrice / gun_sayisi ile geri turetebiliyoruz.
     // Turetilen deger AVAILABLE arac listesindeki pricePerDay ile birebir dogrulandi.
     private fun derivePricePerDay(rental: RentalResponseDto): Double? {
-        if (rental.totalPrice <= 0.0) return null
+        // totalPrice/endDate yalniz DAILY planda dolu (PER_MINUTE/HOURLY'de her ikisi de
+        // null olabilir); bu turetme yalniz DAILY icin anlamli, digerlerinde null doner.
+        val totalPrice = rental.totalPrice ?: return null
+        if (totalPrice <= 0.0) return null
         val start = parseIsoUtc(rental.startDate) ?: return null
-        val end = parseIsoUtc(rental.endDate) ?: return null
+        val end = rental.endDate?.let { parseIsoUtc(it) } ?: return null
         val days = Math.round((end - start).toDouble() / 86_400_000.0).coerceAtLeast(1L)
-        return rental.totalPrice / days
+        return totalPrice / days
     }
 
     private fun onLocationUpdated(location: ActiveRentalLatLng) {

@@ -337,3 +337,29 @@
 - Uygulama: `ActiveRentalRoute`'a, Ana Harita'daki ile aynı desende bir izin akışı eklendi (`rememberLauncherForActivityResult` + `ContextCompat.checkSelfPermission`). Sonuç, `ActiveRentalViewModel`/`ActiveRentalContract`'a değil, yalnızca yerel Compose state'ine (`hasLocationPermission`) yazılıyor ve `ActiveRentalScreen` → `ActiveRentalMapView` parametre zinciriyle taşınıyor. `enableLiveLocation` artık yalnızca izin varken çağrılıyor.
 
 - Kapsam Dışı Bırakılan: İznin `ActiveRentalUiState`'e taşınması (Home'daki `hasLocationPermission` alanıyla aynı desen) bu adımda yapılmadı — bu, Contract/ViewModel değişikliği gerektirir ve harita refactor'ünün onaylanan dosya kapsamının (yalnızca `ActiveRentalScreen.kt`) dışındadır. İleride gerekirse ayrı bir adımda ele alınabilir.
+
+
+### Rental Veri Katmanı — API v2 Plan Bazlı Yaşam Döngüsü (Batch 2)
+
+- Karar: `data/model/RentalDtos.kt`, `data/remote/RentalService.kt`, `data/repository/RentalRepository.kt`+`Impl.kt` API v2'nin plan bazlı kiralama sözleşmesine taşındı. `CreateRentalDto`'ya `plan` (`PER_MINUTE`/`HOURLY`/`DAILY`, varsayılan `DAILY` — geriye uyumlu) eklendi; `RentalResponseDto` genişledi (`vehicle`, `plan`, `startedAt`, `endedAt`, `startFee`, `serviceFee`, `discountAmount`, `distanceKm`, `durationMinutes`, `paymentStatus`, `paymentMethod`); `status` enumuna `PREPARING` eklendi. Yeni DTO'lar: `FinishRentalResponseDto`, `PayRentalDto`/`PayRentalResponseDto`, `ActiveRentalResponseDto`, `RentalStatsResponseDto`, `RentalPhotoDto`/`RentalPhotosStateDto`. Yeni uçlar: `start`, `finish`, `pay`, `photos` (GET+POST multipart), `active`, `stats`, `DELETE rentals/{id}` (yalnız `PREPARING`). Eski `POST rentals/{id}/return` korundu — yalnız `DAILY` planı için geçerli.
+
+- Son Güncelleme Tarihi: 16.07.2026
+
+- Nullable Alan Kararı (canlı API'de doğrulanmış): `endDate`, `endedAt`, `totalPrice`, `serviceFee`, `paymentMethod` nullable modellendi çünkü `PREPARING`/`PER_MINUTE`/`HOURLY` durumlarında bu alanlar sunucudan `null` gelebiliyor (ör. `totalPrice`, `PER_MINUTE`/`HOURLY`'de yalnızca `finish` sonrası kilitleniyor). `startDate`/`startedAt` ise backend'in ikisini de her zaman aynı anda döndürdüğü doğrulandığından (eski istemci uyumluluğu için `startDate` korunuyor) non-null bırakıldı. `@SerialName` kullanılmadığından Kotlin alan adları JSON alan adlarıyla birebir eşleşiyor.
+
+- Geriye Uyumluluk (mevcut tüketiciler): `RentalResponseDto`'nun nullable alanları nedeniyle üç dosyada null-safety düzeltmesi yapıldı — `data/history/HistoryRepositoryImpl.kt` (`totalPrice ?: 0.0`; süre hesabı artık backend'in `durationMinutes` alanından, plan-bağımsız `endDate` üzerinden değil), `ui/activerental/ActiveRentalViewModel.kt` (`derivePricePerDay` yalnızca DAILY planında `totalPrice`/`endDate` doluyken hesap yapar, diğerlerinde `null` döner), `ui/vehiclecondition/VehicleConditionViewModel.kt` (`totalPrice ?: 0.0`). Bu üç dosya dışında hiçbir tüketicinin (`ReservationViewModel`, `HomeViewModel`, `di/RentalModule.kt`) davranışı değişmedi; `createRental` imzasına eklenen `plan` parametresi sona eklenip varsayılan değer verildiği için mevcut pozisyonel çağrılar bozulmadı.
+
+- Kapsam Dışı Bırakılan: Bu batch yalnızca veri katmanını (DTO/Service/Repository) kapsar. Yeni uçların (`start`/`finish`/`pay`/`photos`/`active`/`stats`) UI'dan gerçekten çağrılması ayrı adımlarda ele alınacak: rezervasyon akışında plan seçimi ve gerçek fotoğraf yükleme, aktif kiralama ekranında sunucu taraflı anlık ücret/mesafe, ödeme entegrasyonu (iyzico entegrasyonu hoca tarafından anlatıldıktan sonra eklenecek — bu nedenle `payRental` şu an hiçbir ekrandan çağrılmıyor, yalnızca veri katmanında hazır bekliyor).
+
+- Bilinen Backend Sınırı: `GET /rentals` ve `GET /rentals/stats` canlı API'de `500` dönüyor (backend hatası, istemci kaynaklı değil); `HistoryRepositoryImpl.getHistory()` hâlâ `GET /rentals`'a bağımlı olduğundan Geçmiş ekranı bu hata düzelene kadar risklidir.
+
+
+### Rezervasyon Onayı Ekranı — Kiralama Açmadan Önce Zorunlu Rezervasyon (Geçici Bağlantı)
+
+- Karar: Canlı API'de doğrulandı — `POST /rentals`, aracın üzerinde AKTİF bir rezervasyon yoksa `409` ile reddediyor ("kilidi açmak için önce aracı rezerve etmelisiniz"); başarılı olursa rezervasyon `CONVERTED` işaretlenip araç `RESERVED` → `RENTED` geçiyor. `ReservationViewModel.confirmReservation()` bu kurala kadar doğrudan `rentalRepository.createRental(...)` çağırıyordu ve rezervasyon adımı hiç yapılmıyordu; bu yüzden "Rezervasyonu Tamamla" butonu her zaman 409 ile başarısız oluyordu.
+
+- Son Güncelleme Tarihi: 16.07.2026
+
+- Uygulama: `ReservationViewModel`'e `ReservationRepository` (Batch 3'te yazılmış ama hiçbir ekrandan çağrılmayan veri katmanı) enjekte edildi. `confirmReservation()` artık önce `reservationRepository.reserveVehicle(vehicleId)` çağırıyor; yalnızca bu başarılı olursa `rentalRepository.createRental(...)`'a geçiyor. Rezervasyon başarısız olursa `createRental` hiç çağrılmadan `ReservationEffect.ShowError` gönderiliyor.
+
+- Bilinçli Sınırlama (Geçici): Bu, Batch 5'in tam kapsamı (15 dakikalık ücretsiz tutma süresini gösteren ayrı bir "ReservationHold" geri sayım ekranı, plan seçimine göre `PER_MINUTE`/`HOURLY`/`DAILY` eşlemesi) değildir — yalnızca akışı çalışır hale getiren minimum bağlantıdır. Kullanıcı rezervasyon süresi (varsayılan 15 dk) dolmadan "Rezervasyonu Tamamla"ya basmazsa mevcut davranışta bir geri sayım/uyarı gösterilmiyor; zaten aktif bir rezervasyonu varsa (ör. ekrana tekrar girildiyse) `reserveVehicle` 409 ile başarısız olur ve kullanıcı hata mesajı görür. Bu senaryoların düzgün ele alınması (rezervasyonu iptal etme, geri sayım UI'ı) Batch 5'e bırakıldı.

@@ -90,7 +90,7 @@ class VehicleConditionViewModel @Inject constructor(
                             plate = state.plate,
                             durationSeconds = state.durationSeconds,
                             distanceMeters = state.distanceMeters,
-                            totalPrice = rental.totalPrice,
+                            totalPrice = rental.totalPrice ?: 0.0,
                         ),
                     )
                 }

@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.turkcell.rencar_pair.data.repository.RentalRepository
+import com.turkcell.rencar_pair.data.repository.ReservationRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,6 +22,7 @@ import javax.inject.Inject
 @HiltViewModel
 class ReservationViewModel @Inject constructor(
     private val rentalRepository: RentalRepository,
+    private val reservationRepository: ReservationRepository,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
@@ -50,11 +52,26 @@ class ReservationViewModel @Inject constructor(
         }
     }
 
+    // API v2 kurali: kiralama YALNIZ aktif bir rezervasyon uzerinden acilir (POST /rentals,
+    // aksi halde 409 doner). Bu yuzden "Rezervasyonu Tamamla" once POST /reservations ile
+    // araci RESERVED durumuna alip, ancak basarili olursa POST /rentals'i cagiriyor.
     private fun confirmReservation() {
         val state = _uiState.value
         if (!state.isConfirmEnabled) return
         viewModelScope.launch {
             _uiState.update { it.copy(isSubmitting = true) }
+            val reservationResult = reservationRepository.reserveVehicle(state.vehicleId)
+            val reservation = reservationResult.getOrNull()
+            if (reservation == null) {
+                _uiState.update { it.copy(isSubmitting = false) }
+                _effect.send(
+                    ReservationEffect.ShowError(
+                        reservationResult.exceptionOrNull()?.message ?: "Araç rezerve edilemedi.",
+                    ),
+                )
+                return@launch
+            }
+
             val endDate = endDateFor(state.selectedPlan)
             val result = rentalRepository.createRental(state.vehicleId, endDate)
             _uiState.update { it.copy(isSubmitting = false) }
