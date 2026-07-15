@@ -81,6 +81,11 @@ object NetworkModule {
 
     @Provides
     @Singleton
+    fun provideWalletService(retrofit: Retrofit): WalletService =
+        retrofit.create(WalletService::class.java)
+
+    @Provides
+    @Singleton
     fun provideTokenManager(@ApplicationContext context: Context): TokenManager =
         TokenManager(context)
 }
