@@ -36,7 +36,7 @@ class LicenseViewModel @Inject constructor(
             is LicenseIntent.SelfieImageSelected -> updateState { it.copy(selfieImageUri = intent.uri) }
             is LicenseIntent.NextStepClicked -> handleNextStep()
             is LicenseIntent.BackStepClicked -> handleBackStep()
-            is LicenseIntent.Submit -> submit(intent.frontBytes, intent.backBytes)
+            is LicenseIntent.Submit -> submit(intent.frontBytes, intent.backBytes, intent.selfieBytes)
             is LicenseIntent.RefreshStatus -> checkLicenseStatus()
             is LicenseIntent.MockBypassApprove -> {
                 viewModelScope.launch {
@@ -134,13 +134,13 @@ class LicenseViewModel @Inject constructor(
         }
     }
 
-    private fun submit(frontBytes: ByteArray, backBytes: ByteArray) {
+    private fun submit(frontBytes: ByteArray, backBytes: ByteArray, selfieBytes: ByteArray) {
         val state = _uiState.value
         if (state.isLoading) return
 
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
-            licenseRepository.uploadLicense(frontBytes, backBytes)
+            licenseRepository.uploadLicense(frontBytes, backBytes, selfieBytes)
                 .onSuccess { response ->
                     _uiState.update {
                         it.copy(

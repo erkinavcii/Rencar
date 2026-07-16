@@ -17,7 +17,8 @@ class LicenseRepositoryImpl @Inject constructor(
 
     override suspend fun uploadLicense(
         frontBytes: ByteArray,
-        backBytes: ByteArray
+        backBytes: ByteArray,
+        selfieBytes: ByteArray,
     ): Result<LicenseResponseDto> {
         return try {
             val frontPart = MultipartBody.Part.createFormData(
@@ -30,7 +31,14 @@ class LicenseRepositoryImpl @Inject constructor(
                 "back.jpg",
                 backBytes.toRequestBody("image/jpeg".toMediaTypeOrNull())
             )
-            val response = licenseService.uploadLicense(frontPart, backPart)
+            // API v2 /license/upload yuz benzerlik analizi icin selfie'yi de bekliyor;
+            // alan adi UploadLicenseDto sozlesmesindeki "selfie" ile ayni olmali.
+            val selfiePart = MultipartBody.Part.createFormData(
+                "selfie",
+                "selfie.jpg",
+                selfieBytes.toRequestBody("image/jpeg".toMediaTypeOrNull())
+            )
+            val response = licenseService.uploadLicense(frontPart, backPart, selfiePart)
             if (response.isSuccessful && response.body() != null) {
                 Result.success(response.body()!!)
             } else {

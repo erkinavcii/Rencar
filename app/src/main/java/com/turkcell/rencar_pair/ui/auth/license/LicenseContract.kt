@@ -25,7 +25,11 @@ sealed interface LicenseIntent {
     data class FrontImageSelected(val uri: Uri) : LicenseIntent
     data class BackImageSelected(val uri: Uri) : LicenseIntent
     data class SelfieImageSelected(val uri: Uri) : LicenseIntent
-    data class Submit(val frontBytes: ByteArray, val backBytes: ByteArray) : LicenseIntent
+    data class Submit(
+        val frontBytes: ByteArray,
+        val backBytes: ByteArray,
+        val selfieBytes: ByteArray,
+    ) : LicenseIntent
     data object NextStepClicked : LicenseIntent
     data object BackStepClicked : LicenseIntent
     data object RefreshStatus : LicenseIntent

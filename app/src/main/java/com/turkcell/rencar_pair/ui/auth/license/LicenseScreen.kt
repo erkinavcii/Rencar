@@ -518,15 +518,17 @@ fun LicenseScreen(
                         LicenseStep.SELFIE -> {
                             val frontUri = state.frontImageUri
                             val backUri = state.backImageUri
-                            if (frontUri != null && backUri != null) {
+                            val selfieUri = state.selfieImageUri
+                            if (frontUri != null && backUri != null && selfieUri != null) {
                                 try {
                                     val frontBytes = contentResolver.openInputStream(frontUri)?.use { it.readBytes() }
                                     val backBytes = contentResolver.openInputStream(backUri)?.use { it.readBytes() }
-                                    if (frontBytes != null && backBytes != null) {
-                                        onIntent(LicenseIntent.Submit(frontBytes, backBytes))
+                                    val selfieBytes = contentResolver.openInputStream(selfieUri)?.use { it.readBytes() }
+                                    if (frontBytes != null && backBytes != null && selfieBytes != null) {
+                                        onIntent(LicenseIntent.Submit(frontBytes, backBytes, selfieBytes))
                                     }
                                 } catch (e: Exception) {
-                                    onIntent(LicenseIntent.Submit(ByteArray(0), ByteArray(0)))
+                                    onIntent(LicenseIntent.Submit(ByteArray(0), ByteArray(0), ByteArray(0)))
                                 }
                             }
                         }
