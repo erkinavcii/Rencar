@@ -3,6 +3,7 @@ package com.turkcell.rencar_pair.ui.auth.license
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.turkcell.rencar_pair.data.repository.AdminApprovalRepository
+import com.turkcell.rencar_pair.data.repository.AuthRepository
 import com.turkcell.rencar_pair.data.repository.LicenseRepository
 import com.turkcell.rencar_pair.util.FaceMatcher
 import com.turkcell.rencar_pair.util.FaceMatchResult
@@ -22,6 +23,7 @@ class LicenseViewModel @Inject constructor(
     private val licenseRepository: LicenseRepository,
     private val faceMatcher: FaceMatcher,
     private val adminApprovalRepository: AdminApprovalRepository,
+    private val authRepository: AuthRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(LicenseUiState())
@@ -206,6 +208,14 @@ class LicenseViewModel @Inject constructor(
                 is FaceMatchResult.Success -> if (match.isMatch) {
                     adminApprovalRepository.approveViaAi(licenseId)
                         .onSuccess {
+                            // Rol sunucuda CUSTOMER'a yukseltildi, ancak elimizdeki access
+                            // token hala PENDING claim'i tasiyor (JWT'ye giris aninda gomulu).
+                            // Kendi refresh token'imizla token'i yenilemezsek, Home'a gecince
+                            // /vehicles ve /rentals/active cagrilari 403 (rol: PENDING) doner ve
+                            // token dogal suresi dolup yenilenene kadar (TokenAuthenticator yalniz
+                            // 401'de calisir, 403 onu tetiklemez) boyle kalir. best-effort: yenileme
+                            // basarisiz olsa bile onaylanmis durumu asagida yine de gosteriyoruz.
+                            authRepository.refreshSession()
                             _uiState.update { it.copy(isAiApproving = false) }
                             checkLicenseStatus() // gercek durumu sunucudan tazele
                         }

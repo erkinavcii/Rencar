@@ -2,6 +2,7 @@ package com.turkcell.rencar_pair.data.repository
 
 import com.turkcell.rencar_pair.data.local.TokenManager
 import com.turkcell.rencar_pair.data.model.LoginDto
+import com.turkcell.rencar_pair.data.model.RefreshTokenDto
 import com.turkcell.rencar_pair.data.model.RegisterDto
 import com.turkcell.rencar_pair.data.model.UserResponseDto
 import com.turkcell.rencar_pair.data.model.VerifyOtpDto
@@ -41,6 +42,18 @@ class AuthRepositoryImpl @Inject constructor(
     ): Result<Unit> = runCatching {
         val response = authService.register(RegisterDto(email, password, fullName, phone))
         if (!response.isSuccessful) error(response.apiMessage())
+    }
+
+    override suspend fun refreshSession(): Result<Unit> = runCatching {
+        val refreshToken = tokenManager.getRefreshToken()
+            ?: error("Oturum bulunamadi.")
+        // /auth/refresh, refresh token'i BODY'de bekler; header'daki (muhtemelen eski
+        // rollu) access token'in onemi yoktur. TokenAuthenticator refresh yolunda
+        // yeniden refresh denemedigi icin dongu riski de yoktur.
+        val response = authService.refreshTokens(RefreshTokenDto(refreshToken))
+        if (!response.isSuccessful) error(response.apiMessage())
+        val body = response.body() ?: error("Sunucudan gecersiz yanit.")
+        tokenManager.saveTokens(body.accessToken, body.refreshToken)
     }
 
     override suspend fun getMe(): Result<UserResponseDto> = runCatching {
