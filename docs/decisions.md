@@ -391,3 +391,22 @@
 - Bilinçli Güvenlik Sınırlaması (yalnız demo/MVP): Admin onayı istemciden tetikleniyor. Bunun neden gerçek bir üründe kabul edilemez olduğu (decompile edilebilir yetki, istemci tarafı bypass riski) ve prod'da doğru mimarinin (Yöntem B — onay kararının sunucu tarafında verilmesi) ne olduğu `docs/ml-face-matching.md`'de ayrıntılı belgelendi.
 
 - Mimari Not: Admin onay çağrısı, ana ağ katmanından (`NetworkModule`) kasıtlı olarak izole tutuldu (`di/AdminApprovalModule.kt`, ayrı `OkHttpClient`/`Retrofit`). Sebep: `AuthInterceptor` her isteğe müşterinin `TokenManager`'daki access token'ını koşulsuz bastığından, admin çağrısı paylaşılan istemciden gitseydi müşteri token'ı admin token'ın yerini alır ve çağrı `403` dönerdi. İzolasyon ayrıca müşteri oturumunu (refresh token rotasyonu, `SessionManager`) bu yan akıştan tamamen korur.
+
+
+### Kiralama Aktif Ekranı — Aracın Canlı Konumu (Socket.IO)
+
+- Karar: Kiralama Aktif ekranında, kiracının kendi telefon GPS'inin yanına, aracın backend'den gerçek zamanlı yayınlanan konumu da eklendi. Bağlantı protokolü **Socket.IO** (`io.socket:socket.io-client:2.1.2`, `org.json` modülü exclude edilerek — Android platformunda zaten mevcut).
+
+- Son Güncelleme Tarihi: 17.07.2026
+
+- Sözleşme: `/ws/locations` namespace'ine kullanıcının access token'ıyla (`auth.token`) bağlanılır; sunucu yalnızca kullanıcının aktif kiralamasındaki aracın karesini `my-vehicle` event'iyle gönderir (payload: `{ ts, vehicle: { vehicleId, latitude, longitude, ... } }`). `rentalId` istemciden parametre olarak geçilmez, sunucu token üzerinden çözer. Bu sözleşme, referans bir Kotlin örneğinden (`RideLocationClient.kt` gist'i) çıkarılmış, gerçek bir uydurma değildir.
+
+- Veri Katmanı: `data/remote/RideLocationClient.kt` (yeni) — `vehiclePositionStream(): Flow<VehicleLocationPoint>`. `RentalRepository`/`RentalRepositoryImpl`'e aynı imzalı bir metot eklenip bu istemciye delege edildi. `VehicleLocationPoint` (`data/model/RentalDtos.kt`) `@Serializable` değildir; payload Retrofit üzerinden değil, doğrudan `org.json.JSONObject` ile elle parse edilir (gist'teki `parsePoint` deseniyle birebir).
+
+- Referans Örnekten Sapmalar (uydurma değil, projedeki gerçek karşılıklarla değiştirildi): `BuildConfig.BASE_URL` yerine projede zaten var olan `ApiConfig.BASE_URL` kullanıldı (sondaki `/` çift slash'a yol açmasın diye `trimEnd('/')` uygulandı). `TokenStore` yerine projedeki `TokenManager` kullanıldı. Örnekteki `SessionManager.refreshSession()` projede yok; bunun yerine `TokenAuthenticator.kt`'deki (401 yenileme) ile birebir aynı mantık (`AuthService.refreshTokens` + `TokenManager.saveTokens`) doğrudan `RideLocationClient` içine yazıldı. Ayrıca, örnekte olmayan bir iyileştirme olarak, refresh de başarısız olursa `TokenManager.clearTokens()` + `SessionManager.notifySessionExpired()` çağrılır — bu, REST katmanındaki 401 sonrası oturum sonlandırma davranışıyla (bkz. "Oturum Süresi Dolması (401)" kararı) tutarlılık için eklendi.
+
+- UI/Mimari: `domain/model` paketi projede hiç olmadığından `VehicleLocationPoint` `data/model/` altında tutuldu. `ActiveRentalContract`/`ActiveRentalViewModel`, `ui/common/map` paketine (Compose/Context bağımlı) bağımlı olmasın diye konum, var olan `ActiveRentalLatLng` tipiyle taşınıyor; `GeoPoint`/`MapMarkerItem` dönüşümü yalnızca `ActiveRentalScreen.kt` içinde, `HomeScreen.kt`'deki aynı desenle (`toMapMarkerItem`) tutarlı şekilde yapılıyor. `ActiveRentalViewModel.init` içinde `rentalRepository.vehiclePositionStream()` doğrudan toplanıyor (Context gerekmediğinden, `loadRentalStart()` ile aynı yaklaşım); ayrı bir Intent eklenmedi.
+
+- Kapsam: Yalnızca Kiralama Aktif ekranı. Ana Harita'daki müsait araçların websocket ile canlı güncellenmesi bu kararın kapsamında değildir (bkz. "Harita Bileşeni — Ortak `ui/common/map` Paketine Çıkarılması" kararındaki not); ayrı bir karar olarak ele alınmalıdır. Bağlantı kopunca kullanıcıya görünür bir hata/snackbar da eklenmedi — akış sessizce kapanır.
+
+- Dal: Bu iş `feature/ana-harita-map` (zaten `main`'e PR #27 ile merge edilmişti) üzerinde değil, güncel `main`'den açılan yeni `feature/canli-arac-konumu` dalında yapıldı; `main` bu dala göre "Rental API v2" geçişini (`ApiConfig`, `ActiveRentalResponseDto`, vb.) zaten içeriyordu.
