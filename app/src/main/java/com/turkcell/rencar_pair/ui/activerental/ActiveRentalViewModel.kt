@@ -76,7 +76,12 @@ class ActiveRentalViewModel @Inject constructor(
                         val resolvedPrice =
                             if (current.pricePerDay > 0.0) current.pricePerDay
                             else derivePricePerDay(rental) ?: current.pricePerDay
-                        current.copy(startEpochMillis = startMillis, pricePerDay = resolvedPrice)
+                        current.copy(
+                            startEpochMillis = startMillis,
+                            pricePerDay = resolvedPrice,
+                            plan = rental.plan,
+                            startFee = rental.startFee,
+                        )
                     }
                 }
                 .onFailure {

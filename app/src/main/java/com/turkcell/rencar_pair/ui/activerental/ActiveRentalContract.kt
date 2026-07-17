@@ -1,5 +1,8 @@
 package com.turkcell.rencar_pair.ui.activerental
 
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import kotlin.math.asin
 import kotlin.math.cos
 import kotlin.math.pow
@@ -29,6 +32,12 @@ data class ActiveRentalUiState(
     val model: String = "",
     val plate: String = "",
     val pricePerDay: Double = 0.0,
+    // Backend'in RentalResponseDto.plan alani (PER_MINUTE, HOURLY, DAILY); arac karti
+    // altyazisinda ("34 HCH 305 · Dakikalık") gosterilir.
+    val plan: String = "",
+    // RentalResponseDto.startFee — anlik ucrete dahil edilen sabit baslangic ucreti
+    // (uydurma degil, backend'den geliyor).
+    val startFee: Double = 0.0,
     val startEpochMillis: Long? = null,
     val nowEpochMillis: Long = System.currentTimeMillis(),
     val distanceMeters: Double = 0.0,
@@ -54,11 +63,26 @@ data class ActiveRentalUiState(
 
     // Backend yalnizca gunluk fiyat (pricePerDay) donduruyor; anlik ucret gecen
     // gercek sureye orantili turetiliyor (uydurma sabit degil, VehicleDetailBottomSheet
-    // ve Rezervasyon ekranindaki ile ayni yaklasim).
+    // ve Rezervasyon ekranindaki ile ayni yaklasim). startFee, backend'in RentalResponseDto'da
+    // dondurdugu gercek sabit baslangic ucreti; anlik ucrete dahil edilir.
     val liveCost: Double
-        get() = (pricePerDay / 1440.0) * (elapsedSeconds / 60.0)
+        get() = (pricePerDay / 1440.0) * (elapsedSeconds / 60.0) + startFee
 
     val distanceKm: Double get() = distanceMeters / 1000.0
+
+    val planLabel: String
+        get() = when (plan) {
+            "PER_MINUTE" -> "Dakikalık"
+            "HOURLY" -> "Saatlik"
+            "DAILY" -> "Günlük"
+            else -> ""
+        }
+
+    val startedAtLabel: String
+        get() {
+            val start = startEpochMillis ?: return "—"
+            return SimpleDateFormat("dd.MM.yyyy HH:mm", Locale("tr")).format(Date(start))
+        }
 }
 
 sealed interface ActiveRentalIntent {
