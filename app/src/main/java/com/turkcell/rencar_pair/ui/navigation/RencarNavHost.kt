@@ -10,7 +10,6 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.turkcell.rencar_pair.data.local.TokenManager
 import com.turkcell.rencar_pair.data.session.SessionManager
 import com.turkcell.rencar_pair.ui.auth.license.LicenseRoute
 import com.turkcell.rencar_pair.ui.auth.login.LoginRoute
@@ -19,6 +18,7 @@ import com.turkcell.rencar_pair.ui.auth.register.RegisterRoute
 import com.turkcell.rencar_pair.ui.home.HomeRoute
 import com.turkcell.rencar_pair.ui.home.ActiveRentalSummary
 import com.turkcell.rencar_pair.ui.onboarding.OnboardingRoute
+import com.turkcell.rencar_pair.ui.splash.SplashDestination
 import com.turkcell.rencar_pair.ui.splash.SplashRoute
 import com.turkcell.rencar_pair.ui.history.HistoryRoute
 import com.turkcell.rencar_pair.ui.profile.ProfileRoute
@@ -73,7 +73,6 @@ private fun vehicleConditionRoute(
 
 @Composable
 fun RencarNavHost(
-    tokenManager: TokenManager,
     sessionManager: SessionManager,
     modifier: Modifier = Modifier,
     navController: NavHostController = rememberNavController(),
@@ -108,10 +107,13 @@ fun RencarNavHost(
     ) {
         composable(ROUTE_SPLASH) {
             SplashRoute(
-                onSplashFinished = {
-                    val destination =
-                        if (tokenManager.getAccessToken() != null) ROUTE_HOME else ROUTE_ONBOARDING
-                    navController.navigate(destination) {
+                onSplashFinished = { destination ->
+                    val route = when (destination) {
+                        SplashDestination.ONBOARDING -> ROUTE_ONBOARDING
+                        SplashDestination.HOME -> ROUTE_HOME
+                        SplashDestination.LICENSE -> ROUTE_LICENSE
+                    }
+                    navController.navigate(route) {
                         popUpTo(ROUTE_SPLASH) { inclusive = true }
                     }
                 },
