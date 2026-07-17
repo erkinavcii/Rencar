@@ -1,6 +1,7 @@
 package com.turkcell.rencar_pair.di
 
 import android.content.Context
+import com.turkcell.rencar_pair.BuildConfig
 import com.turkcell.rencar_pair.data.local.TokenManager
 import com.turkcell.rencar_pair.data.remote.*
 import dagger.Module
@@ -31,7 +32,15 @@ object NetworkModule {
     @Provides
     @Singleton
     fun provideLoggingInterceptor(): HttpLoggingInterceptor = HttpLoggingInterceptor().apply {
-        level = HttpLoggingInterceptor.Level.BODY
+        // Yalniz debug build'de tam govde loglanir. Release'de kapatiliyor: govde
+        // loglari hem gurultu (multipart foto yuklemede binary cop) hem de guvenlik
+        // riski (token'lar, kisisel veri Authorization header'i ve govdelerde acikca
+        // gorunur) tasiyor.
+        level = if (BuildConfig.DEBUG) {
+            HttpLoggingInterceptor.Level.BODY
+        } else {
+            HttpLoggingInterceptor.Level.NONE
+        }
     }
 
     @Provides
