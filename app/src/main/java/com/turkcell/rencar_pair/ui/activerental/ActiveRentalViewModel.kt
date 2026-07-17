@@ -3,6 +3,7 @@ package com.turkcell.rencar_pair.ui.activerental
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.turkcell.rencar_pair.data.model.VehicleLocationPoint
 import com.turkcell.rencar_pair.data.repository.RentalRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
@@ -44,6 +45,7 @@ class ActiveRentalViewModel @Inject constructor(
     init {
         loadRentalStart()
         pollActiveRental()
+        observeVehicleLocation()
     }
 
     fun onIntent(intent: ActiveRentalIntent) {
@@ -66,7 +68,9 @@ class ActiveRentalViewModel @Inject constructor(
             rentalRepository.getRentalDetails(state.rentalId)
                 .onSuccess { rental ->
                     val startMillis = parseIsoUtc(rental.startDate) ?: System.currentTimeMillis()
-                    _uiState.update { it.copy(startEpochMillis = startMillis) }
+                    _uiState.update {
+                        it.copy(startEpochMillis = startMillis, plan = rental.plan, startFee = rental.startFee)
+                    }
                 }
                 .onFailure {
                     // Rezervasyon az once bu ekrana yonlendirdiginden startDate her zaman
@@ -94,6 +98,18 @@ class ActiveRentalViewModel @Inject constructor(
                         }
                     }
                 delay(COST_POLL_INTERVAL_MS)
+            }
+        }
+    }
+
+    // Aracin canli konumu (Socket.IO). ViewModel yasam suresi boyunca acik kalir;
+    // viewModelScope iptal edildiginde alt akis (RideLocationClient) de kapanir.
+    private fun observeVehicleLocation() {
+        viewModelScope.launch {
+            rentalRepository.vehiclePositionStream().collect { point: VehicleLocationPoint ->
+                _uiState.update {
+                    it.copy(vehicleLocation = ActiveRentalLatLng(point.latitude, point.longitude))
+                }
             }
         }
     }

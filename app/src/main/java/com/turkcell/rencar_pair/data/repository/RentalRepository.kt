@@ -7,6 +7,8 @@ import com.turkcell.rencar_pair.data.model.PayRentalResponseDto
 import com.turkcell.rencar_pair.data.model.RentalPhotosStateDto
 import com.turkcell.rencar_pair.data.model.RentalResponseDto
 import com.turkcell.rencar_pair.data.model.RentalStatsResponseDto
+import com.turkcell.rencar_pair.data.model.VehicleLocationPoint
+import kotlinx.coroutines.flow.Flow
 
 interface RentalRepository {
     suspend fun createRental(vehicleId: String, endDate: String?, plan: String = "DAILY"): Result<RentalResponseDto>
@@ -42,4 +44,8 @@ interface RentalRepository {
     suspend fun getActiveRental(): Result<ActiveRentalResponseDto?>
 
     suspend fun getStats(month: String? = null): Result<RentalStatsResponseDto>
+
+    // Aktif kiralamadaki aracin canli konumu (Socket.IO). Aktif kiralama yoksa akis hic veri
+    // yaymaz; sunucu rentalId parametresi almadan token'a gore filtreler.
+    fun vehiclePositionStream(): Flow<VehicleLocationPoint>
 }

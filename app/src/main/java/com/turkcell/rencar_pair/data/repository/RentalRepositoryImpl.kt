@@ -8,7 +8,10 @@ import com.turkcell.rencar_pair.data.model.PayRentalResponseDto
 import com.turkcell.rencar_pair.data.model.RentalPhotosStateDto
 import com.turkcell.rencar_pair.data.model.RentalResponseDto
 import com.turkcell.rencar_pair.data.model.RentalStatsResponseDto
+import com.turkcell.rencar_pair.data.model.VehicleLocationPoint
 import com.turkcell.rencar_pair.data.remote.RentalService
+import com.turkcell.rencar_pair.data.remote.RideLocationClient
+import kotlinx.coroutines.flow.Flow
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.toRequestBody
@@ -18,6 +21,7 @@ import javax.inject.Inject
 
 class RentalRepositoryImpl @Inject constructor(
     private val rentalService: RentalService,
+    private val rideLocationClient: RideLocationClient,
 ) : RentalRepository {
 
     override suspend fun createRental(vehicleId: String, endDate: String?, plan: String): Result<RentalResponseDto> =
@@ -92,6 +96,9 @@ class RentalRepositoryImpl @Inject constructor(
         if (!response.isSuccessful) error(response.apiMessage())
         response.body() ?: error("Sunucudan bos yanit alindi.")
     }
+
+    override fun vehiclePositionStream(): Flow<VehicleLocationPoint> =
+        rideLocationClient.vehiclePositionStream()
 
     override suspend fun getActiveRental(): Result<ActiveRentalResponseDto?> = runCatching {
         val response = rentalService.getActiveRental()

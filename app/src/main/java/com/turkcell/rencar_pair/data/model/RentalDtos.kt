@@ -18,6 +18,14 @@ data class RentalVehicleSummaryDto(
     val type: String
 )
 
+// Socket.IO 'my-vehicle' event'inden gelen canli konum karesi. Retrofit/kotlinx.serialization
+// uzerinden degil, RideLocationClient icinde org.json ile elle parse edildiginden @Serializable
+// degildir.
+data class VehicleLocationPoint(
+    val latitude: Double,
+    val longitude: Double,
+)
+
 @Serializable
 data class RentalResponseDto(
     val id: String,

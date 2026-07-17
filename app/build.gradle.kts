@@ -92,6 +92,14 @@ dependencies {
     implementation(libs.maplibre.android.sdk)
     implementation(libs.play.services.location)
 
+    // Kiralama Aktif ekraninda aracin canli konumu icin Socket.IO istemcisi
+    // (backend sozlesmesi bu protokolu kullaniyor, ham WebSocket/STOMP degil).
+    // org.json Android platformunda zaten mevcut oldugundan kutuphanenin kendi
+    // kopyasi disarida birakiliyor (sinif catismasini onler).
+    implementation(libs.socket.io.client) {
+        exclude(group = "org.json", module = "json")
+    }
+
     // Cihaz uzerinde (on-device) yuz eslestirme: ML Kit yuz tespiti + TFLite embedding.
     implementation("com.google.mlkit:face-detection:16.1.7")
     implementation("org.tensorflow:tensorflow-lite:2.14.0")

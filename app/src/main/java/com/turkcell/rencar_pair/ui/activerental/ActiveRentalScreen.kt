@@ -5,7 +5,10 @@ import android.content.pm.PackageManager
 import android.location.Location
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,8 +21,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.DirectionsCar
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material3.Button
@@ -47,21 +55,36 @@ import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.turkcell.rencar_pair.ui.common.map.GeoPoint
+import com.turkcell.rencar_pair.ui.common.map.MapMarkerItem
 import com.turkcell.rencar_pair.ui.common.map.RencarMap
 import com.turkcell.rencar_pair.ui.common.map.enableLiveLocation
+import com.turkcell.rencar_pair.ui.common.map.fitCameraToPoints
+import com.turkcell.rencar_pair.ui.common.map.renderMapMarkers
+import com.turkcell.rencar_pair.ui.theme.BackgroundLight
 import com.turkcell.rencar_pair.ui.theme.BackgroundDark
+import com.turkcell.rencar_pair.ui.theme.BorderDefaultDark
+import com.turkcell.rencar_pair.ui.theme.BorderDefaultLight
 import com.turkcell.rencar_pair.ui.theme.ErrorDefault
+import com.turkcell.rencar_pair.ui.theme.InfoBackgroundDark
+import com.turkcell.rencar_pair.ui.theme.InfoBackgroundLight
+import com.turkcell.rencar_pair.ui.theme.InfoIconDark
+import com.turkcell.rencar_pair.ui.theme.InfoIconLight
+import com.turkcell.rencar_pair.ui.theme.InfoTextDark
+import com.turkcell.rencar_pair.ui.theme.InfoTextLight
 import com.turkcell.rencar_pair.ui.theme.Primary
-import com.turkcell.rencar_pair.ui.theme.SuccessStrongDark
-import com.turkcell.rencar_pair.ui.theme.SurfaceDark
+import com.turkcell.rencar_pair.ui.theme.SurfaceElevatedDark
+import com.turkcell.rencar_pair.ui.theme.SurfaceElevatedLight
 import com.turkcell.rencar_pair.ui.theme.TextOnPrimary
 import com.turkcell.rencar_pair.ui.theme.TextPrimaryDark
+import com.turkcell.rencar_pair.ui.theme.TextPrimaryLight
 import com.turkcell.rencar_pair.ui.theme.TextTertiaryDark
+import com.turkcell.rencar_pair.ui.theme.TextTertiaryLight
 import com.turkcell.rencar_pair.ui.theme.bodyS
 import com.turkcell.rencar_pair.ui.theme.displayS
-import com.turkcell.rencar_pair.ui.theme.labelS
+import com.turkcell.rencar_pair.ui.theme.headingL
 import com.turkcell.rencar_pair.ui.theme.statValue
 import com.turkcell.rencar_pair.ui.theme.titleL
+import com.turkcell.rencar_pair.ui.theme.titleM
 import kotlinx.coroutines.delay
 import org.maplibre.android.location.modes.CameraMode
 import org.maplibre.android.maps.MapLibreMap
@@ -143,6 +166,7 @@ fun ActiveRentalRoute(
     ActiveRentalScreen(
         state = uiState,
         onIntent = viewModel::onIntent,
+        onBack = onBack,
         snackbarHostState = snackbarHostState,
         hasLocationPermission = hasLocationPermission,
         modifier = modifier,
@@ -153,91 +177,207 @@ fun ActiveRentalRoute(
 fun ActiveRentalScreen(
     state: ActiveRentalUiState,
     onIntent: (ActiveRentalIntent) -> Unit,
+    onBack: () -> Unit,
     snackbarHostState: SnackbarHostState,
     hasLocationPermission: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
+    val isDark = isSystemInDarkTheme()
+    val backgroundColor = if (isDark) BackgroundDark else BackgroundLight
+    val cardColor = if (isDark) SurfaceElevatedDark else SurfaceElevatedLight
+    val textPrimary = if (isDark) TextPrimaryDark else TextPrimaryLight
+    val textTertiary = if (isDark) TextTertiaryDark else TextTertiaryLight
+    val borderColor = if (isDark) BorderDefaultDark else BorderDefaultLight
+    val infoBg = if (isDark) InfoBackgroundDark else InfoBackgroundLight
+    val infoIcon = if (isDark) InfoIconDark else InfoIconLight
+    val infoText = if (isDark) InfoTextDark else InfoTextLight
+
     Scaffold(
-        containerColor = BackgroundDark,
+        containerColor = backgroundColor,
         snackbarHost = { SnackbarHost(snackbarHostState) },
         modifier = modifier,
     ) { paddingValues ->
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues),
+                .padding(paddingValues)
+                .statusBarsPadding(),
         ) {
-            ActiveRentalMapView(
-                modifier = Modifier.fillMaxSize(),
-                hasLocationPermission = hasLocationPermission,
-                // Mesafe artik sunucudan periyodik sorgulanan gercek distanceKm ile
-                // gosteriliyor (bkz. ActiveRentalViewModel.pollActiveRental); bu ekranin
-                // canli konum callback'i yalnizca haritadaki mavi noktayi guncelliyor,
-                // ViewModel'e artik bir intent gondermesine gerek yok.
-                onLocationUpdate = {},
-            )
-
-            Box(
-                modifier = Modifier
-                    .statusBarsPadding()
-                    .padding(top = 12.dp)
-                    .align(Alignment.TopCenter)
-                    .clip(RoundedCornerShape(50))
-                    .background(SurfaceDark)
-                    .padding(horizontal = 16.dp, vertical = 10.dp),
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .padding(end = 8.dp)
-                            .background(SuccessStrongDark, RoundedCornerShape(50)),
-                    ) {
-                        Spacer(modifier = Modifier.width(9.dp).height(9.dp))
-                    }
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(cardColor)
+                        .clickable(onClick = onBack),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Geri",
+                        tint = textPrimary,
+                    )
+                }
+                Spacer(modifier = Modifier.width(14.dp))
+                Column {
+                    Text(text = "Aktif Yolculuk", style = headingL, color = textPrimary)
                     Text(
-                        text = "Kiralama aktif · ${state.brand} ${state.model}",
-                        style = labelS,
-                        color = TextPrimaryDark,
+                        text = "Süre ve ücret canlı işliyor",
+                        style = bodyS,
+                        color = textTertiary,
                     )
                 }
             }
 
             Column(
                 modifier = Modifier
-                    .align(Alignment.BottomCenter)
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 20.dp),
+            ) {
+                VehicleInfoCard(
+                    brand = state.brand,
+                    model = state.model,
+                    plate = state.plate,
+                    planLabel = state.planLabel,
+                    cardColor = cardColor,
+                    iconBg = backgroundColor,
+                    textPrimary = textPrimary,
+                    textTertiary = textTertiary,
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(210.dp)
+                        .clip(RoundedCornerShape(20.dp)),
+                ) {
+                    ActiveRentalMapView(
+                        modifier = Modifier.fillMaxSize(),
+                        hasLocationPermission = hasLocationPermission,
+                        vehicleLocation = state.vehicleLocation,
+                        vehicleId = state.vehicleId,
+                        vehicleLabel = state.plate.ifBlank { "Araç" },
+                        // Mesafe artik sunucudan periyodik sorgulanan gercek distanceKm ile
+                        // gosteriliyor (bkz. ActiveRentalViewModel.pollActiveRental); bu
+                        // callback yalnizca haritadaki mavi noktayi guncelliyor.
+                        onLocationUpdate = {},
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                if (state.isVehicleLocked) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 12.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Lock,
+                            contentDescription = null,
+                            tint = textPrimary,
+                            modifier = Modifier.size(32.dp),
+                        )
+                        Text(
+                            text = "Araç kilitli",
+                            style = displayS,
+                            color = textPrimary,
+                            modifier = Modifier.padding(top = 8.dp),
+                        )
+                        Text(
+                            text = "Sürüşe devam etmek için kilidi açınız",
+                            style = bodyS,
+                            color = textTertiary,
+                            modifier = Modifier.padding(top = 4.dp),
+                        )
+                    }
+                } else {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(18.dp))
+                            .background(cardColor)
+                            .padding(vertical = 18.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Text(text = "Geçen süre", style = bodyS, color = textTertiary)
+                        Text(
+                            text = state.elapsedTimeLabel,
+                            style = displayS,
+                            color = textPrimary,
+                            modifier = Modifier.padding(top = 2.dp),
+                        )
+                        Text(
+                            text = "Başlangıç: ${state.startedAtLabel}",
+                            style = bodyS,
+                            color = textTertiary,
+                            modifier = Modifier.padding(top = 2.dp),
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                        StatBlock(
+                            label = "Anlık ücret",
+                            value = "${"%.2f".format(state.currentCost).replace('.', ',')} ₺",
+                            valueColor = Primary,
+                            textTertiary = textTertiary,
+                            modifier = Modifier.weight(1f),
+                        )
+                        StatBlock(
+                            label = "Mesafe",
+                            value = "%.1f km".format(state.distanceKm).replace('.', ','),
+                            valueColor = textPrimary,
+                            textTertiary = textTertiary,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+
+                    if (state.startFee > 0.0) {
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(infoBg)
+                                .padding(14.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Info,
+                                contentDescription = null,
+                                tint = infoIcon,
+                                modifier = Modifier.size(20.dp),
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Text(
+                                text = "Anlık ücrete ${"%.0f".format(state.startFee)} ₺ başlangıç ücreti dahildir; " +
+                                    "kesin döküm bitirince çıkar.",
+                                style = bodyS,
+                                color = infoText,
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
-                    .background(SurfaceDark)
-                    .padding(horizontal = 20.dp, vertical = 22.dp),
+                    .padding(horizontal = 20.dp, vertical = 16.dp),
             ) {
                 if (state.isVehicleLocked) {
-                    Icon(
-                        imageVector = Icons.Default.Lock,
-                        contentDescription = null,
-                        tint = TextPrimaryDark,
-                        modifier = Modifier
-                            .size(32.dp)
-                            .align(Alignment.CenterHorizontally),
-                    )
-                    Text(
-                        text = "Araç kilitli",
-                        style = displayS,
-                        color = TextPrimaryDark,
-                        modifier = Modifier
-                            .align(Alignment.CenterHorizontally)
-                            .padding(top = 8.dp),
-                    )
-                    Text(
-                        text = "Sürüşe devam etmek için kilidi açınız",
-                        style = bodyS,
-                        color = TextTertiaryDark,
-                        modifier = Modifier
-                            .align(Alignment.CenterHorizontally)
-                            .padding(top = 4.dp),
-                    )
-
-                    Spacer(modifier = Modifier.height(20.dp))
-
                     Button(
                         onClick = { onIntent(ActiveRentalIntent.LockToggleClicked) },
                         modifier = Modifier
@@ -250,57 +390,27 @@ fun ActiveRentalScreen(
                         Text(text = "Kilidi Aç", style = titleL, color = TextOnPrimary)
                     }
                 } else {
-                    Text(
-                        text = "Geçen süre",
-                        style = bodyS,
-                        color = TextTertiaryDark,
-                        modifier = Modifier.align(Alignment.CenterHorizontally),
-                    )
-                    Text(
-                        text = state.elapsedTimeLabel,
-                        style = displayS,
-                        color = TextPrimaryDark,
-                        modifier = Modifier.align(Alignment.CenterHorizontally),
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-                        StatCard(
-                            label = "Anlık ücret",
-                            value = "₺${"%.2f".format(state.currentCost).replace('.', ',')}",
-                            modifier = Modifier.weight(1f),
-                        )
-                        StatCard(
-                            label = "Mesafe",
-                            value = "%.1f km".format(state.distanceKm),
-                            modifier = Modifier.weight(1f),
-                        )
+                    OutlinedButton(
+                        onClick = { onIntent(ActiveRentalIntent.LockToggleClicked) },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(56.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = textPrimary),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, borderColor),
+                    ) {
+                        Icon(imageVector = Icons.Default.Lock, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
+                        Text(text = "Kilitle / Aç", style = titleM)
                     }
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-                        OutlinedButton(
-                            onClick = { onIntent(ActiveRentalIntent.LockToggleClicked) },
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(56.dp),
-                            shape = RoundedCornerShape(16.dp),
-                        ) {
-                            Icon(imageVector = Icons.Default.Lock, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
-                            Text(text = "Kilitle", style = titleL)
-                        }
-                        Button(
-                            onClick = { onIntent(ActiveRentalIntent.EndRentalClicked) },
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(56.dp),
-                            shape = RoundedCornerShape(16.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = ErrorDefault, contentColor = TextOnPrimary),
-                        ) {
-                            Text(text = "Kiralamayı Bitir", style = titleL, color = TextOnPrimary)
-                        }
+                    Button(
+                        onClick = { onIntent(ActiveRentalIntent.EndRentalClicked) },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(56.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = ErrorDefault, contentColor = TextOnPrimary),
+                    ) {
+                        Text(text = "Kiralamayı Bitir", style = titleM, color = TextOnPrimary)
                     }
                 }
             }
@@ -309,26 +419,79 @@ fun ActiveRentalScreen(
 }
 
 @Composable
-private fun StatCard(label: String, value: String, modifier: Modifier = Modifier) {
-    Column(
+private fun VehicleInfoCard(
+    brand: String,
+    model: String,
+    plate: String,
+    planLabel: String,
+    cardColor: Color,
+    iconBg: Color,
+    textPrimary: Color,
+    textTertiary: Color,
+    modifier: Modifier = Modifier,
+) {
+    Row(
         modifier = modifier
-            .clip(RoundedCornerShape(14.dp))
-            .background(BackgroundDark)
-            .padding(12.dp),
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(cardColor)
+            .padding(14.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(text = label, style = bodyS, color = TextTertiaryDark)
-        Text(text = value, style = statValue, color = Primary, modifier = Modifier.padding(top = 4.dp))
+        Box(
+            modifier = Modifier
+                .size(48.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(iconBg),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = Icons.Default.DirectionsCar,
+                contentDescription = null,
+                tint = textPrimary,
+            )
+        }
+        Spacer(modifier = Modifier.width(12.dp))
+        Column {
+            Text(text = "$brand $model", style = titleL, color = textPrimary)
+            val subtitle = if (planLabel.isBlank()) plate else "$plate · $planLabel"
+            Text(text = subtitle, style = bodyS, color = textTertiary)
+        }
     }
 }
 
-// Bu ekrana ozel kucuk bir harita bileseni: yalnizca canli konum (mavi nokta) icin;
-// arac marker'lari veya kat edilen yolun cizgisi bu adimda cizilmiyor (kapsam disi).
+@Composable
+private fun StatBlock(
+    label: String,
+    value: String,
+    valueColor: Color,
+    textTertiary: Color,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(text = label, style = bodyS, color = textTertiary)
+        Text(text = value, style = statValue, color = valueColor, modifier = Modifier.padding(top = 4.dp))
+    }
+}
+
+// Bu ekrana ozel kucuk bir harita bileseni: kiracinin kendi canli konumu (mavi nokta,
+// telefon GPS'i) ve aracin backend'den Socket.IO ile gelen canli konumu (ayri bir marker)
+// birlikte gosterilir. Kat edilen yolun cizgisi bu adimda cizilmiyor (kapsam disi).
 // hasLocationPermission false iken enableLiveLocation hic cagrilmaz (once izin yoktu,
 // canli konum izinsiz cagriliyordu).
+//
+// Kamera aracin konumunu takip eder (telefonun GPS'ini degil): telefon GPS'i (ozellikle
+// emulator/masa basi testte) aracin gercek rotasindan tamamen farkli bir yerde olabilir,
+// bu durumda CameraMode.TRACKING ile kamera telefona kilitlenince arac marker'i her zaman
+// ekran disinda kalip hic gorunmuyordu (hareket etmiyormus gibi algilaniyordu). Telefonun
+// mavi noktasi yine gosteriliyor (RenderMode.NORMAL), sadece kamerayi surmuyor.
 @Composable
 private fun ActiveRentalMapView(
     modifier: Modifier = Modifier,
     hasLocationPermission: Boolean,
+    vehicleLocation: ActiveRentalLatLng?,
+    vehicleId: String,
+    vehicleLabel: String,
     onLocationUpdate: (Location) -> Unit,
 ) {
     val context = LocalContext.current
@@ -340,10 +503,29 @@ private fun ActiveRentalMapView(
         val disposeLocation = enableLiveLocation(
             context = context,
             map = map,
-            cameraMode = CameraMode.TRACKING,
+            cameraMode = CameraMode.NONE,
             onLocationUpdate = onLocationUpdate,
         )
         onDispose { disposeLocation() }
+    }
+
+    LaunchedEffect(mapLibreMap, vehicleLocation) {
+        val map = mapLibreMap ?: return@LaunchedEffect
+        val location = vehicleLocation ?: return@LaunchedEffect
+        val vehiclePoint = GeoPoint(location.latitude, location.longitude)
+        renderMapMarkers(
+            context = context,
+            map = map,
+            items = listOf(
+                MapMarkerItem(
+                    id = vehicleId,
+                    position = vehiclePoint,
+                    label = vehicleLabel,
+                    color = Primary,
+                ),
+            ),
+        )
+        fitCameraToPoints(context, map, listOf(vehiclePoint))
     }
 
     RencarMap(
