@@ -133,6 +133,34 @@ bekler — AI butonu yalnızca bu bekleyişi *kısaltabilen*, isteğe bağlı bi
   tutulur; ViewModel yeniden yaratılırsa (ör. uygulama arka planda öldürülürse)
   kaybolur. Bu durumda AI butonu kullanıcıyı normal incelemeye yönlendiren bir
   hata gösterir — akış kesilmez, sadece hızlandırma fırsatı kaçar.
+
+  **Gerçek gözlem (17.07.2026):** Sabah oluşturulan bir test hesabında, ehliyet
+  yüklendikten uzun süre sonra (uygulama arka planda kapanıp tekrar açıldıktan
+  sonra) "AI ile Anında Onayla" denendiğinde tam bu senaryo tetiklendi: buton
+  *"AI onayı bu oturumda kullanılamıyor. Lütfen normal incelemeyi bekleyin."*
+  hatasını gösterdi. Kök neden doğrulandı — `cachedFrontBytes`/`cachedSelfieBytes`/
+  `licenseId` hiçbiri kalıcı depoya yazılmıyor (yalnızca `private var`, bellekte);
+  ViewModel'in araya giren bir süreç yeniden başlatmasıyla sıfırlanması bekleniyor.
+  Sunucu selfie'yi `GET /license/status` yanıtında geri vermediği için (yalnızca
+  upload yanıtında bir kerelik döner), görselleri sunucudan yeniden çekmek de
+  mümkün değil.
+
+  **Değerlendirilen alternatifler:**
+  1. *Demo protokolü olarak kabul et* — "yükle, hemen ardından AI onayla" sırasını
+     bozmadan göster; kod değişikliği gerektirmez.
+  2. *Backend'den selfie URL'sini `status` yanıtına ekletme* — kalıcı çözüm ama
+     backend değişikliği gerektirir, bu ekibin kontrolünde değil.
+  3. *`licenseId`'yi `SharedPreferences`'a kalıcı yaz* (görselleri değil — onlar
+     zaten sunucudan geri alınamıyor) ve kullanıcıdan AI onayı için görselleri
+     yeniden seçmesini iste — orta yol, UX'i karmaşıklaştırır.
+
+  **Karar (17.07.2026, demo kapsamı için):** 1. seçenek benimsendi, davranış
+  **değiştirilmeyecek**. Gerekçe: bu bir MVP/jüri-demo hızlandırma özelliği,
+  ana onay akışını (normal admin incelemesi) hiçbir şekilde engellemiyor; 2.
+  seçenek kapsam dışı bir backend bağımlılığı, 3. seçenek ise kazanılan UX
+  değerine kıyasla gereksiz karmaşıklık katıyor. Demoda "yükle → hemen AI ile
+  onayla" sırası gösterilecek; sabah yüklenip sonra denenen senaryo gibi
+  session-arası kullanım, beklenen (dokümante edilmiş) sınırlamadır, bug değil.
 - **Refresh token'a dokunulmaz:** Admin akışı `TokenManager`/`SessionManager`'dan
   tamamen bağımsızdır; müşterinin oturumunu veya refresh-token rotasyonunu
   hiçbir şekilde etkilemez (ayrı Retrofit örneği, ayrı OkHttpClient).
