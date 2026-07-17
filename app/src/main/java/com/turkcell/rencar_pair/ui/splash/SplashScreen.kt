@@ -49,7 +49,7 @@ import com.turkcell.rencar_pair.ui.theme.displayL
 
 @Composable
 fun SplashRoute(
-    onSplashFinished: () -> Unit,
+    onSplashFinished: (SplashDestination) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: SplashViewModel = hiltViewModel(),
 ) {
@@ -58,7 +58,7 @@ fun SplashRoute(
     LaunchedEffect(Unit) {
         viewModel.effect.collect { effect ->
             when (effect) {
-                is SplashEffect.Finished -> onSplashFinished()
+                is SplashEffect.NavigateTo -> onSplashFinished(effect.destination)
             }
         }
     }
