@@ -3,6 +3,7 @@ package com.turkcell.rencar_pair.ui.vehiclecondition
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -29,6 +30,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -50,16 +52,14 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.turkcell.rencar_pair.ui.common.photo.PhotoSourceSheet
 import com.turkcell.rencar_pair.ui.common.photo.readImageBytes
 import com.turkcell.rencar_pair.ui.common.photo.rememberPhotoPicker
-import com.turkcell.rencar_pair.ui.theme.BackgroundDark
-import com.turkcell.rencar_pair.ui.theme.BorderSubtleDark
 import com.turkcell.rencar_pair.ui.theme.Primary
+import com.turkcell.rencar_pair.ui.theme.SuccessBackgroundDark
+import com.turkcell.rencar_pair.ui.theme.SuccessBackgroundLight
+import com.turkcell.rencar_pair.ui.theme.SuccessStrong
 import com.turkcell.rencar_pair.ui.theme.SuccessStrongDark
-import com.turkcell.rencar_pair.ui.theme.SurfaceDark
-import com.turkcell.rencar_pair.ui.theme.SurfaceElevatedDark
 import com.turkcell.rencar_pair.ui.theme.TextOnPrimary
-import com.turkcell.rencar_pair.ui.theme.TextPrimaryDark
-import com.turkcell.rencar_pair.ui.theme.TextSecondaryDark
 import com.turkcell.rencar_pair.ui.theme.TextTertiaryDark
+import com.turkcell.rencar_pair.ui.theme.TextTertiaryLight
 import com.turkcell.rencar_pair.ui.theme.Warning as WarningColor
 import com.turkcell.rencar_pair.ui.theme.bodyS
 import com.turkcell.rencar_pair.ui.theme.headingXL
@@ -142,6 +142,8 @@ fun VehicleConditionScreen(
 ) {
     val isBefore = state.mode == VehicleConditionMode.BEFORE
     val context = LocalContext.current
+    val isDark = isSystemInDarkTheme()
+    val textTertiary = if (isDark) TextTertiaryDark else TextTertiaryLight
 
     // Ehliyet dogrulamadaki foto deseninin ortak bilesene cikarilmis hali
     // (ui/common/photo): yon kartina dokun -> kamera/galeri sec -> gorsel byte'lari
@@ -164,7 +166,7 @@ fun VehicleConditionScreen(
     }
 
     Scaffold(
-        containerColor = BackgroundDark,
+        containerColor = MaterialTheme.colorScheme.background,
         snackbarHost = { SnackbarHost(snackbarHostState) },
         modifier = modifier,
     ) { paddingValues ->
@@ -183,19 +185,19 @@ fun VehicleConditionScreen(
                     modifier = Modifier
                         .size(40.dp)
                         .clip(RoundedCornerShape(12.dp))
-                        .background(SurfaceElevatedDark)
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
                         .clickable(onClick = onBack),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Geri",
-                        tint = TextPrimaryDark,
+                        tint = MaterialTheme.colorScheme.onSurface,
                     )
                 }
                 Spacer(modifier = Modifier.width(14.dp))
                 Column {
-                    Text(text = "Araç durumu", style = headingXL, color = TextPrimaryDark)
+                    Text(text = "Araç durumu", style = headingXL, color = MaterialTheme.colorScheme.onBackground)
                     Text(
                         text = if (isBefore) {
                             "Başlamadan önce ${state.totalSides} yönü çek"
@@ -203,7 +205,7 @@ fun VehicleConditionScreen(
                             "Teslim etmeden önce ${state.totalSides} yönü çek"
                         },
                         style = bodyS,
-                        color = TextTertiaryDark,
+                        color = textTertiary,
                     )
                 }
             }
@@ -215,7 +217,7 @@ fun VehicleConditionScreen(
                 Text(
                     text = "${state.brand} ${state.model} · ${state.plate}",
                     style = bodyS,
-                    color = TextSecondaryDark,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Text(
                     text = "${state.checkedCount} / ${state.totalSides} çekildi",
@@ -276,7 +278,7 @@ fun VehicleConditionScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(14.dp))
-                    .background(SurfaceDark)
+                    .background(MaterialTheme.colorScheme.surface)
                     .padding(14.dp),
             ) {
                 Icon(
@@ -288,7 +290,7 @@ fun VehicleConditionScreen(
                 Text(
                     text = "Hasarları net çek — teslim sonrası anlaşmazlığı önler.",
                     style = bodyS,
-                    color = TextSecondaryDark,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
 
@@ -361,8 +363,11 @@ private fun VehicleSidePhotoCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val backgroundColor = if (checked) Color(0xFF17301F) else SurfaceDark
-    val borderColor = if (checked) SuccessStrongDark else BorderSubtleDark
+    val isDark = isSystemInDarkTheme()
+    val successBackground = if (isDark) SuccessBackgroundDark else SuccessBackgroundLight
+    val successStrong = if (isDark) SuccessStrongDark else SuccessStrong
+    val backgroundColor = if (checked) successBackground else MaterialTheme.colorScheme.surface
+    val borderColor = if (checked) successStrong else MaterialTheme.colorScheme.outlineVariant
 
     Box(
         modifier = modifier
@@ -385,14 +390,14 @@ private fun VehicleSidePhotoCard(
                         .background(Color.Black.copy(alpha = 0.55f))
                         .padding(horizontal = 8.dp, vertical = 3.dp),
                 ) {
-                    Text(text = side.label, style = labelM, color = TextPrimaryDark)
+                    Text(text = side.label, style = labelM, color = TextOnPrimary)
                 }
                 if (checked) {
                     Box(
                         modifier = Modifier
                             .size(22.dp)
                             .clip(RoundedCornerShape(50))
-                            .background(SuccessStrongDark),
+                            .background(successStrong),
                         contentAlignment = Alignment.Center,
                     ) {
                         Icon(
@@ -416,7 +421,7 @@ private fun VehicleSidePhotoCard(
                     Icon(
                         imageVector = Icons.Default.DirectionsCar,
                         contentDescription = null,
-                        tint = SuccessStrongDark,
+                        tint = successStrong,
                         modifier = Modifier.size(36.dp),
                     )
                 } else {
@@ -436,7 +441,7 @@ private fun VehicleSidePhotoCard(
                             )
                         }
                         Spacer(modifier = Modifier.height(8.dp))
-                        Text(text = "Fotoğraf çek", style = bodyS, color = TextSecondaryDark)
+                        Text(text = "Fotoğraf çek", style = bodyS, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }

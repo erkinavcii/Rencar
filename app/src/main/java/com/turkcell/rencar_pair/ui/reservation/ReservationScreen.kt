@@ -4,6 +4,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,6 +26,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -42,19 +44,16 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.turkcell.rencar_pair.ui.theme.BackgroundDark
-import com.turkcell.rencar_pair.ui.theme.BorderSubtleDark
-import com.turkcell.rencar_pair.ui.theme.ErrorTextDark
 import com.turkcell.rencar_pair.ui.theme.Primary
 import com.turkcell.rencar_pair.ui.theme.SuccessBackgroundDark
+import com.turkcell.rencar_pair.ui.theme.SuccessBackgroundLight
+import com.turkcell.rencar_pair.ui.theme.SuccessStrong
 import com.turkcell.rencar_pair.ui.theme.SuccessStrongDark
-import com.turkcell.rencar_pair.ui.theme.SurfaceDark
-import com.turkcell.rencar_pair.ui.theme.SurfaceElevatedDark
 import com.turkcell.rencar_pair.ui.theme.TextHintDark
+import com.turkcell.rencar_pair.ui.theme.TextHintLight
 import com.turkcell.rencar_pair.ui.theme.TextOnPrimary
-import com.turkcell.rencar_pair.ui.theme.TextPrimaryDark
-import com.turkcell.rencar_pair.ui.theme.TextSecondaryDark
 import com.turkcell.rencar_pair.ui.theme.TextTertiaryDark
+import com.turkcell.rencar_pair.ui.theme.TextTertiaryLight
 import com.turkcell.rencar_pair.ui.theme.bodyS
 import com.turkcell.rencar_pair.ui.theme.headingXL
 import com.turkcell.rencar_pair.ui.theme.labelS
@@ -120,8 +119,11 @@ fun ReservationScreen(
     snackbarHostState: SnackbarHostState,
     modifier: Modifier = Modifier,
 ) {
+    val isDark = isSystemInDarkTheme()
+    val textTertiary = if (isDark) TextTertiaryDark else TextTertiaryLight
+
     Scaffold(
-        containerColor = BackgroundDark,
+        containerColor = MaterialTheme.colorScheme.background,
         snackbarHost = { SnackbarHost(snackbarHostState) },
         modifier = modifier,
     ) { paddingValues ->
@@ -140,18 +142,18 @@ fun ReservationScreen(
                     modifier = Modifier
                         .size(40.dp)
                         .clip(RoundedCornerShape(12.dp))
-                        .background(SurfaceElevatedDark)
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
                         .clickable(onClick = onBack),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Geri",
-                        tint = TextPrimaryDark,
+                        tint = MaterialTheme.colorScheme.onSurface,
                     )
                 }
                 Spacer(modifier = Modifier.width(14.dp))
-                Text(text = "Rezervasyon Onayı", style = headingXL, color = TextPrimaryDark)
+                Text(text = "Rezervasyon Onayı", style = headingXL, color = MaterialTheme.colorScheme.onBackground)
             }
 
             VehicleSummaryCard(
@@ -162,7 +164,7 @@ fun ReservationScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            Text(text = "Kiralama planı", style = titleL, color = TextPrimaryDark)
+            Text(text = "Kiralama planı", style = titleL, color = MaterialTheme.colorScheme.onBackground)
             Spacer(modifier = Modifier.height(10.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 PlanOptionCard(
@@ -194,14 +196,14 @@ fun ReservationScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(16.dp))
-                    .background(SurfaceDark)
+                    .background(MaterialTheme.colorScheme.surface)
                     .padding(horizontal = 16.dp, vertical = 14.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 Text(
                     text = "Tahmini ücret (${state.estimatedDurationLabel})",
                     style = bodyS,
-                    color = TextTertiaryDark,
+                    color = textTertiary,
                 )
                 when {
                     state.isQuoteLoading -> CircularProgressIndicator(
@@ -212,14 +214,14 @@ fun ReservationScreen(
                     state.quote != null -> Text(
                         text = "~₺${state.quote.estimatedTotal.toInt()}",
                         style = titleL,
-                        color = TextPrimaryDark,
+                        color = MaterialTheme.colorScheme.onSurface,
                     )
                     state.quoteError != null -> Text(
                         text = "Fiyat alınamadı",
                         style = bodyS,
-                        color = ErrorTextDark,
+                        color = MaterialTheme.colorScheme.error,
                     )
-                    else -> Text(text = "-", style = titleL, color = TextPrimaryDark)
+                    else -> Text(text = "-", style = titleL, color = MaterialTheme.colorScheme.onSurface)
                 }
             }
 
@@ -235,7 +237,12 @@ fun ReservationScreen(
                     modifier = Modifier
                         .size(22.dp)
                         .clip(RoundedCornerShape(6.dp))
-                        .background(if (state.termsAccepted) Primary else SurfaceElevatedDark),
+                        .background(if (state.termsAccepted) Primary else MaterialTheme.colorScheme.surfaceVariant)
+                        .border(
+                            width = 1.5.dp,
+                            color = if (state.termsAccepted) Primary else MaterialTheme.colorScheme.outline,
+                            shape = RoundedCornerShape(6.dp),
+                        ),
                     contentAlignment = Alignment.Center,
                 ) {
                     if (state.termsAccepted) {
@@ -251,7 +258,7 @@ fun ReservationScreen(
                 Text(
                     text = "Kullanım şartlarını ve kasko/sigorta koşullarını okudum, onaylıyorum.",
                     style = bodyS,
-                    color = TextSecondaryDark,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
 
@@ -294,12 +301,16 @@ private fun VehicleSummaryCard(
         context.resources.getIdentifier(resourceName, "drawable", context.packageName)
             .takeIf { it != 0 }
     }
+    val isDark = isSystemInDarkTheme()
+    val textTertiary = if (isDark) TextTertiaryDark else TextTertiaryLight
+    val successBackground = if (isDark) SuccessBackgroundDark else SuccessBackgroundLight
+    val successStrong = if (isDark) SuccessStrongDark else SuccessStrong
 
     Row(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(18.dp))
-            .background(SurfaceDark)
+            .background(MaterialTheme.colorScheme.surface)
             .padding(14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -307,7 +318,7 @@ private fun VehicleSummaryCard(
             modifier = Modifier
                 .size(64.dp)
                 .clip(RoundedCornerShape(14.dp))
-                .background(SurfaceElevatedDark),
+                .background(MaterialTheme.colorScheme.surfaceVariant),
             contentAlignment = Alignment.Center,
         ) {
             if (resId != null) {
@@ -321,28 +332,28 @@ private fun VehicleSummaryCard(
                 Icon(
                     imageVector = Icons.Default.DirectionsCar,
                     contentDescription = null,
-                    tint = TextTertiaryDark,
+                    tint = textTertiary,
                     modifier = Modifier.size(28.dp),
                 )
             }
         }
         Spacer(modifier = Modifier.width(14.dp))
         Column(modifier = Modifier.weight(1f)) {
-            Text(text = "$brand $model", style = titleL, color = TextPrimaryDark)
+            Text(text = "$brand $model", style = titleL, color = MaterialTheme.colorScheme.onSurface)
             Text(
                 text = "$plate · $PLACEHOLDER_TRANSMISSION · $PLACEHOLDER_SEAT_COUNT kişi",
                 style = bodyS,
-                color = TextTertiaryDark,
+                color = textTertiary,
                 modifier = Modifier.padding(top = 2.dp),
             )
             Box(
                 modifier = Modifier
                     .padding(top = 6.dp)
                     .clip(RoundedCornerShape(7.dp))
-                    .background(SuccessBackgroundDark)
+                    .background(successBackground)
                     .padding(horizontal = 8.dp, vertical = 3.dp),
             ) {
-                Text(text = "Yakıt %$PLACEHOLDER_FUEL_PERCENT", style = labelXS, color = SuccessStrongDark)
+                Text(text = "Yakıt %$PLACEHOLDER_FUEL_PERCENT", style = labelXS, color = successStrong)
             }
         }
     }
@@ -356,19 +367,21 @@ private fun PlanOptionCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val borderColor = if (selected) Primary else BorderSubtleDark
-    val textColor = if (selected) Primary else TextSecondaryDark
+    val isDark = isSystemInDarkTheme()
+    val textHint = if (isDark) TextHintDark else TextHintLight
+    val borderColor = if (selected) Primary else MaterialTheme.colorScheme.outlineVariant
+    val textColor = if (selected) Primary else MaterialTheme.colorScheme.onSurfaceVariant
 
     Column(
         modifier = modifier
             .clip(RoundedCornerShape(14.dp))
-            .background(SurfaceDark)
+            .background(MaterialTheme.colorScheme.surface)
             .border(width = 1.7.dp, color = borderColor, shape = RoundedCornerShape(14.dp))
             .clickable(onClick = onClick)
             .padding(vertical = 14.dp, horizontal = 10.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text(text = label, style = labelS, color = if (selected) TextPrimaryDark else TextHintDark)
+        Text(text = label, style = labelS, color = if (selected) MaterialTheme.colorScheme.onSurface else textHint)
         Spacer(modifier = Modifier.height(4.dp))
         Text(text = priceLabel, style = titleXS, color = textColor)
     }

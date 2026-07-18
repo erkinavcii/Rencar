@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -25,7 +26,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.text.font.FontWeight
@@ -104,9 +104,11 @@ fun HistoryScreen(
                 onTabSelected = onTabSelected,
             )
         },
-        containerColor = BackgroundDark,
+        containerColor = MaterialTheme.colorScheme.background,
         modifier = modifier,
     ) { innerPadding ->
+        val isDark = isSystemInDarkTheme()
+        val textHint = if (isDark) TextHintDark else TextHintLight
 
         Box(
             modifier = Modifier
@@ -116,7 +118,7 @@ fun HistoryScreen(
             when {
                 state.isLoading && state.trips.isEmpty() -> {
                     CircularProgressIndicator(
-                        color = PrimaryOnDark,
+                        color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.align(Alignment.Center),
                     )
                 }
@@ -124,7 +126,7 @@ fun HistoryScreen(
                     Text(
                         text      = "Henüz kiralama geçmişiniz yok.",
                         style     = bodyM,
-                        color     = TextHintDark,
+                        color     = textHint,
                         textAlign = TextAlign.Center,
                         modifier  = Modifier
                             .align(Alignment.Center)
@@ -148,7 +150,7 @@ fun HistoryScreen(
                                     fontSize   = 30.sp,
                                     fontWeight = FontWeight.ExtraBold,
                                 ),
-                                color = TextPrimaryDark,
+                                color = MaterialTheme.colorScheme.onBackground,
                             )
                             Spacer(Modifier.height(16.dp))
                             StatsRow(state = state)
@@ -168,7 +170,7 @@ fun HistoryScreen(
                                 Text(
                                     text      = "Aramanızla eşleşen yolculuk bulunamadı.",
                                     style     = bodyM,
-                                    color     = TextHintDark,
+                                    color     = textHint,
                                     textAlign = TextAlign.Center,
                                     modifier  = Modifier
                                         .fillMaxWidth()
@@ -230,23 +232,25 @@ private fun StatCard(
     spending: Double,
     modifier: Modifier = Modifier,
 ) {
+    val textTertiary = if (isSystemInDarkTheme()) TextTertiaryDark else TextTertiaryLight
+
     Column(
         modifier = modifier
             .clip(RoundedCornerShape(16.dp))
-            .background(SurfaceDark)
+            .background(MaterialTheme.colorScheme.surface)
             .padding(horizontal = 14.dp, vertical = 12.dp),
     ) {
-        Text(text = label, style = labelS, color = TextTertiaryDark)
+        Text(text = label, style = labelS, color = textTertiary)
         Spacer(Modifier.height(4.dp))
         Text(
             text = "$tripCount yolculuk",
             style = titleL.copy(fontWeight = FontWeight.Bold),
-            color = TextPrimaryDark,
+            color = MaterialTheme.colorScheme.onSurface,
         )
         Text(
             text = "₺${formatAmount(spending)}",
             style = bodyS,
-            color = TextTertiaryDark,
+            color = textTertiary,
         )
     }
 }
@@ -259,28 +263,34 @@ private fun SearchField(
     onQueryChange: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val isDark = isSystemInDarkTheme()
+    val textTertiary = if (isDark) TextTertiaryDark else TextTertiaryLight
+    val textHint = if (isDark) TextHintDark else TextHintLight
+    val borderStrong = if (isDark) BorderStrongDark else BorderStrongLight
+    val onSurface = MaterialTheme.colorScheme.onSurface
+
     Row(
         modifier = modifier
             .fillMaxWidth()
             .height(50.dp)
             .clip(RoundedCornerShape(16.dp))
-            .background(SurfaceDark)
-            .border(width = 1.dp, color = BorderStrongDark, shape = RoundedCornerShape(16.dp))
+            .background(MaterialTheme.colorScheme.surface)
+            .border(width = 1.dp, color = borderStrong, shape = RoundedCornerShape(16.dp))
             .padding(horizontal = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Icon(imageVector = Icons.Default.Search, contentDescription = null, tint = TextTertiaryDark)
+        Icon(imageVector = Icons.Default.Search, contentDescription = null, tint = textTertiary)
         BasicTextField(
             value = query,
             onValueChange = onQueryChange,
             singleLine = true,
-            textStyle = bodyS.copy(color = TextPrimaryDark),
-            cursorBrush = SolidColor(TextPrimaryDark),
+            textStyle = bodyS.copy(color = onSurface),
+            cursorBrush = SolidColor(onSurface),
             modifier = Modifier.weight(1f),
             decorationBox = { innerTextField ->
                 if (query.isEmpty()) {
-                    Text(text = "Araç adı veya plaka ara…", style = bodyS, color = TextHintDark)
+                    Text(text = "Araç adı veya plaka ara…", style = bodyS, color = textHint)
                 }
                 innerTextField()
             },
@@ -289,7 +299,7 @@ private fun SearchField(
             Icon(
                 imageVector = Icons.Default.Close,
                 contentDescription = "Aramayı temizle",
-                tint = TextTertiaryDark,
+                tint = textTertiary,
                 modifier = Modifier
                     .size(18.dp)
                     .clickable { onQueryChange("") },
@@ -332,22 +342,26 @@ private fun MonthFilterDropdown(
 ) {
     var expanded by remember { mutableStateOf(false) }
     val selectedLabel = availableMonths.find { it.first == selectedMonthFilter }?.second ?: "Tüm Aylar"
+    val isDark = isSystemInDarkTheme()
+    val surfacePressed = if (isDark) SurfacePressedDark else SurfacePressedLight
+    val textTertiary = if (isDark) TextTertiaryDark else TextTertiaryLight
+    val onSurface = MaterialTheme.colorScheme.onSurface
 
     Box(modifier = modifier) {
         Row(
             modifier = Modifier
                 .clip(RoundedCornerShape(12.dp))
-                .background(SurfacePressedDark)
+                .background(surfacePressed)
                 .clickable { expanded = true }
                 .padding(horizontal = 12.dp, vertical = 9.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            Text(text = selectedLabel, style = labelM, color = TextPrimaryDark)
+            Text(text = selectedLabel, style = labelM, color = onSurface)
             Icon(
                 imageVector = Icons.Default.ArrowDropDown,
                 contentDescription = null,
-                tint = TextTertiaryDark,
+                tint = textTertiary,
                 modifier = Modifier.size(18.dp),
             )
         }
@@ -355,10 +369,10 @@ private fun MonthFilterDropdown(
         DropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false },
-            containerColor = SurfaceElevatedDark,
+            containerColor = MaterialTheme.colorScheme.surfaceVariant,
         ) {
             DropdownMenuItem(
-                text = { Text(text = "Tüm Aylar", color = TextPrimaryDark) },
+                text = { Text(text = "Tüm Aylar", color = onSurface) },
                 onClick = {
                     onMonthSelected(null)
                     expanded = false
@@ -366,7 +380,7 @@ private fun MonthFilterDropdown(
             )
             availableMonths.forEach { (key, label) ->
                 DropdownMenuItem(
-                    text = { Text(text = label, color = TextPrimaryDark) },
+                    text = { Text(text = label, color = onSurface) },
                     onClick = {
                         onMonthSelected(key)
                         expanded = false
@@ -383,10 +397,12 @@ private fun SortToggleChip(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val surfacePressed = if (isSystemInDarkTheme()) SurfacePressedDark else SurfacePressedLight
+
     Row(
         modifier = modifier
             .clip(RoundedCornerShape(12.dp))
-            .background(SurfacePressedDark)
+            .background(surfacePressed)
             .clickable(onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 9.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -395,13 +411,13 @@ private fun SortToggleChip(
         Icon(
             imageVector = Icons.Default.SwapVert,
             contentDescription = null,
-            tint = PrimaryOnDark,
+            tint = MaterialTheme.colorScheme.primary,
             modifier = Modifier.size(16.dp),
         )
         Text(
             text = if (selectedSort == HistorySortOption.DATE_DESC) "En Yeni" else "En Eski",
             style = labelM,
-            color = TextPrimaryDark,
+            color = MaterialTheme.colorScheme.onSurface,
         )
     }
 }
@@ -413,8 +429,9 @@ private fun HistoryChip(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val background = if (selected) Primary else SurfacePressedDark
-    val contentColor = if (selected) TextOnPrimary else TextSecondaryDark
+    val surfacePressed = if (isSystemInDarkTheme()) SurfacePressedDark else SurfacePressedLight
+    val background = if (selected) Primary else surfacePressed
+    val contentColor = if (selected) TextOnPrimary else MaterialTheme.colorScheme.onSurfaceVariant
 
     Box(
         modifier = modifier
@@ -431,11 +448,14 @@ private fun HistoryChip(
 
 @Composable
 private fun TripCard(trip: HistoryTrip, onClick: () -> Unit) {
+    val textHint = if (isSystemInDarkTheme()) TextHintDark else TextHintLight
+    val onSurface = MaterialTheme.colorScheme.onSurface
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(20.dp))
-            .background(SurfaceDark)
+            .background(MaterialTheme.colorScheme.surface)
             .clickable(onClick = onClick)
             .padding(14.dp),
         verticalAlignment     = Alignment.Top,
@@ -447,13 +467,13 @@ private fun TripCard(trip: HistoryTrip, onClick: () -> Unit) {
             Text(
                 text  = trip.vehicleName,
                 style = titleL.copy(fontWeight = FontWeight.Bold),
-                color = TextPrimaryDark,
+                color = onSurface,
             )
             Spacer(Modifier.height(4.dp))
             Text(
                 text  = trip.dateLabel,
                 style = bodyS,
-                color = TextHintDark,
+                color = textHint,
             )
             Spacer(Modifier.height(10.dp))
             InfoChip(trip.durationLabel)
@@ -462,7 +482,7 @@ private fun TripCard(trip: HistoryTrip, onClick: () -> Unit) {
         Text(
             text  = "₺${formatAmount(trip.price)}",
             style = titleL.copy(fontWeight = FontWeight.ExtraBold),
-            color = TextPrimaryDark,
+            color = onSurface,
         )
     }
 }
@@ -472,9 +492,11 @@ private fun TripCard(trip: HistoryTrip, onClick: () -> Unit) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TripDetailBottomSheet(trip: HistoryTrip, onDismiss: () -> Unit) {
+    val textTertiary = if (isSystemInDarkTheme()) TextTertiaryDark else TextTertiaryLight
+
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        containerColor = SurfaceDark,
+        containerColor = MaterialTheme.colorScheme.surface,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
     ) {
         Column(
@@ -486,13 +508,13 @@ private fun TripDetailBottomSheet(trip: HistoryTrip, onDismiss: () -> Unit) {
             Text(
                 text = trip.vehicleName,
                 style = headingL,
-                color = TextPrimaryDark,
+                color = MaterialTheme.colorScheme.onSurface,
             )
             Spacer(Modifier.height(4.dp))
             Text(
                 text = trip.fullDateLabel,
                 style = bodyS,
-                color = TextTertiaryDark,
+                color = textTertiary,
             )
 
             Spacer(Modifier.height(18.dp))
@@ -508,7 +530,7 @@ private fun TripDetailBottomSheet(trip: HistoryTrip, onDismiss: () -> Unit) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(1.dp)
-                    .background(BorderSubtleDark),
+                    .background(MaterialTheme.colorScheme.outlineVariant),
             )
             Spacer(Modifier.height(18.dp))
 
@@ -517,11 +539,11 @@ private fun TripDetailBottomSheet(trip: HistoryTrip, onDismiss: () -> Unit) {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(text = "Toplam Ücret", style = bodyS, color = TextTertiaryDark)
+                Text(text = "Toplam Ücret", style = bodyS, color = textTertiary)
                 Text(
                     text = "₺${formatAmount(trip.price)}",
                     style = priceL,
-                    color = TextPrimaryDark,
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
             }
         }
@@ -534,19 +556,23 @@ private fun DetailRow(
     label: String,
     value: String,
 ) {
+    val isDark = isSystemInDarkTheme()
+    val surfacePressed = if (isDark) SurfacePressedDark else SurfacePressedLight
+    val textTertiary = if (isDark) TextTertiaryDark else TextTertiaryLight
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(14.dp))
-            .background(SurfacePressedDark)
+            .background(surfacePressed)
             .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Icon(imageVector = icon, contentDescription = null, tint = TextTertiaryDark, modifier = Modifier.size(18.dp))
+        Icon(imageVector = icon, contentDescription = null, tint = textTertiary, modifier = Modifier.size(18.dp))
         Column {
-            Text(text = label, style = labelS, color = TextTertiaryDark)
-            Text(text = value, style = titleS.copy(fontWeight = FontWeight.SemiBold), color = TextPrimaryDark)
+            Text(text = label, style = labelS, color = textTertiary)
+            Text(text = value, style = titleS.copy(fontWeight = FontWeight.SemiBold), color = MaterialTheme.colorScheme.onSurface)
         }
     }
 }
@@ -555,16 +581,18 @@ private fun DetailRow(
 
 @Composable
 private fun InfoChip(text: String) {
+    val surfacePressed = if (isSystemInDarkTheme()) SurfacePressedDark else SurfacePressedLight
+
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(8.dp))
-            .background(SurfacePressedDark)
+            .background(surfacePressed)
             .padding(horizontal = 10.dp, vertical = 5.dp),
     ) {
         Text(
             text  = text,
             style = labelS.copy(fontWeight = FontWeight.Bold),
-            color = TextSecondaryDark,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }
@@ -573,16 +601,20 @@ private fun InfoChip(text: String) {
 
 @Composable
 private fun RouteThumbnail(start: Offset, end: Offset) {
+    val background = MaterialTheme.colorScheme.background
+    val gridColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.07f)
+    val primary = MaterialTheme.colorScheme.primary
+    val successColor = SuccessDefault
+
     Box(
         modifier = Modifier
             .size(64.dp)
             .clip(RoundedCornerShape(16.dp))
-            .background(BackgroundDark),
+            .background(background),
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
             val w = size.width
             val h = size.height
-            val gridColor = Color.White.copy(alpha = 0.07f)
 
             // Zayıf (faint) harita ızgarası
             val cols = 3
@@ -601,7 +633,7 @@ private fun RouteThumbnail(start: Offset, end: Offset) {
 
             // Rota çizgisi
             drawLine(
-                color       = PrimaryOnDark,
+                color       = primary,
                 start       = startPoint,
                 end         = endPoint,
                 strokeWidth = 2.5.dp.toPx(),
@@ -609,9 +641,9 @@ private fun RouteThumbnail(start: Offset, end: Offset) {
             )
 
             // Başlangıç noktası (mavi)
-            drawCircle(color = PrimaryOnDark, radius = 4.dp.toPx(), center = startPoint)
+            drawCircle(color = primary, radius = 4.dp.toPx(), center = startPoint)
             // Bitiş noktası (yeşil)
-            drawCircle(color = SuccessStrongDark, radius = 4.dp.toPx(), center = endPoint)
+            drawCircle(color = successColor, radius = 4.dp.toPx(), center = endPoint)
         }
     }
 }
