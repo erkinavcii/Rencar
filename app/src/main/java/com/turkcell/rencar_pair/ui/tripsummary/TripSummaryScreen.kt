@@ -1,6 +1,7 @@
 package com.turkcell.rencar_pair.ui.tripsummary
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -15,8 +16,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CreditCard
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -32,10 +36,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.turkcell.rencar_pair.ui.theme.BackgroundDark
+import com.turkcell.rencar_pair.ui.theme.BorderDefaultDark
+import com.turkcell.rencar_pair.ui.theme.InfoBackgroundDark
+import com.turkcell.rencar_pair.ui.theme.InfoIconDark
+import com.turkcell.rencar_pair.ui.theme.InfoTextDark
 import com.turkcell.rencar_pair.ui.theme.Primary
 import com.turkcell.rencar_pair.ui.theme.SuccessBackgroundDark
 import com.turkcell.rencar_pair.ui.theme.SuccessStrongDark
@@ -54,6 +63,7 @@ import com.turkcell.rencar_pair.ui.theme.titleS
 @Composable
 fun TripSummaryRoute(
     onNavigateHome: () -> Unit,
+    onNavigateToIyzicoCheckout: (rentalId: String, totalPrice: Double) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: TripSummaryViewModel = hiltViewModel(),
 ) {
@@ -64,6 +74,8 @@ fun TripSummaryRoute(
         viewModel.effect.collect { effect ->
             when (effect) {
                 TripSummaryEffect.NavigateHome -> onNavigateHome()
+                is TripSummaryEffect.NavigateToIyzicoCheckout ->
+                    onNavigateToIyzicoCheckout(effect.rentalId, effect.totalPrice)
                 is TripSummaryEffect.ShowError -> snackbarHostState.showSnackbar(effect.message)
             }
         }
@@ -165,25 +177,66 @@ fun TripSummaryScreen(
                     )
                 }
             } else {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(SurfaceDark)
-                        .padding(horizontal = 16.dp, vertical = 14.dp)
-                        .clickable { /* Kart degistirme akisi bu adimda kapsam disi */ },
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(imageVector = Icons.Default.CreditCard, contentDescription = null, tint = TextSecondaryDark)
-                    Column(modifier = Modifier.padding(start = 12.dp).weight(1f)) {
-                        Text(
-                            text = if (state.isLoadingCard) "Kart yükleniyor…" else state.cardLabel,
-                            style = bodyS,
-                            color = TextPrimaryDark,
-                        )
-                        Text(text = "Kişisel kart", style = bodyS, color = TextTertiaryDark)
+                Text(
+                    text = "Ödeme Yöntemi",
+                    style = titleS,
+                    color = TextSecondaryDark,
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                )
+                PaymentMethodSelector(
+                    selected = state.selectedPaymentMethod,
+                    onSelected = { onIntent(TripSummaryIntent.PaymentMethodSelected(it)) },
+                )
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                when (state.selectedPaymentMethod) {
+                    PaymentMethod.CARD -> {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(SurfaceDark)
+                                .padding(horizontal = 16.dp, vertical = 14.dp)
+                                .clickable { /* Kart degistirme akisi bu adimda kapsam disi */ },
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(imageVector = Icons.Default.CreditCard, contentDescription = null, tint = TextSecondaryDark)
+                            Column(modifier = Modifier.padding(start = 12.dp).weight(1f)) {
+                                Text(
+                                    text = if (state.isLoadingCard) "Kart yükleniyor…" else state.cardLabel,
+                                    style = bodyS,
+                                    color = TextPrimaryDark,
+                                )
+                                Text(text = "Kişisel kart", style = bodyS, color = TextTertiaryDark)
+                            }
+                            Text(text = "Değiştir", style = titleS, color = Primary)
+                        }
                     }
-                    Text(text = "Değiştir", style = titleS, color = Primary)
+                    PaymentMethod.IYZICO -> {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(InfoBackgroundDark)
+                                .padding(horizontal = 16.dp, vertical = 14.dp),
+                            verticalAlignment = Alignment.Top,
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Lock,
+                                contentDescription = null,
+                                tint = InfoIconDark,
+                                modifier = Modifier.size(18.dp),
+                            )
+                            Text(
+                                text = "Ödeme, İyzico'nun güvenli ödeme sayfasında yapılır. Kart bilgin uygulamada tutulmaz.",
+                                style = bodyS,
+                                color = InfoTextDark,
+                                modifier = Modifier.padding(start = 10.dp),
+                            )
+                        }
+                    }
+                    PaymentMethod.WALLET -> Unit
                 }
             }
 
@@ -215,15 +268,83 @@ fun TripSummaryScreen(
                     if (state.isPaying) {
                         CircularProgressIndicator(color = TextOnPrimary, strokeWidth = 2.dp, modifier = Modifier.size(20.dp))
                     } else {
-                        Text(
-                            text = "₺${"%.2f".format(state.totalPrice).replace('.', ',')} Öde",
-                            style = titleL,
-                            color = TextOnPrimary,
-                        )
+                        val amountLabel = "₺${"%.2f".format(state.totalPrice).replace('.', ',')}"
+                        val actionLabel = if (state.selectedPaymentMethod == PaymentMethod.IYZICO) {
+                            "$amountLabel İyzico ile Öde"
+                        } else {
+                            "$amountLabel Öde"
+                        }
+                        Text(text = actionLabel, style = titleL, color = TextOnPrimary)
                     }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun PaymentMethodSelector(
+    selected: PaymentMethod,
+    onSelected: (PaymentMethod) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(modifier = modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        PaymentMethodOption(
+            label = "Cüzdan",
+            icon = Icons.Default.AccountBalanceWallet,
+            isSelected = selected == PaymentMethod.WALLET,
+            onClick = { onSelected(PaymentMethod.WALLET) },
+            modifier = Modifier.weight(1f),
+        )
+        PaymentMethodOption(
+            label = "Kart",
+            icon = Icons.Default.CreditCard,
+            isSelected = selected == PaymentMethod.CARD,
+            onClick = { onSelected(PaymentMethod.CARD) },
+            modifier = Modifier.weight(1f),
+        )
+        PaymentMethodOption(
+            label = "İyzico",
+            icon = Icons.Default.Payments,
+            isSelected = selected == PaymentMethod.IYZICO,
+            onClick = { onSelected(PaymentMethod.IYZICO) },
+            modifier = Modifier.weight(1f),
+        )
+    }
+}
+
+@Composable
+private fun PaymentMethodOption(
+    label: String,
+    icon: ImageVector,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(14.dp))
+            .background(if (isSelected) InfoBackgroundDark else SurfaceDark)
+            .border(
+                width = if (isSelected) 1.dp else 0.dp,
+                color = if (isSelected) Primary else BorderDefaultDark,
+                shape = RoundedCornerShape(14.dp),
+            )
+            .clickable(onClick = onClick)
+            .padding(vertical = 14.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = if (isSelected) Primary else TextSecondaryDark,
+        )
+        Text(
+            text = label,
+            style = bodyS,
+            color = if (isSelected) Primary else TextSecondaryDark,
+            modifier = Modifier.padding(top = 6.dp),
+        )
     }
 }
 

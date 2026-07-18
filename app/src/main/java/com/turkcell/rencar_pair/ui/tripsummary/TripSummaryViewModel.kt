@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.turkcell.rencar_pair.data.model.PayRentalDto
+import com.turkcell.rencar_pair.data.payment.IyzicoPaymentEventBus
 import com.turkcell.rencar_pair.data.repository.RentalRepository
 import com.turkcell.rencar_pair.data.wallet.WalletRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -20,6 +21,7 @@ import javax.inject.Inject
 class TripSummaryViewModel @Inject constructor(
     private val walletRepository: WalletRepository,
     private val rentalRepository: RentalRepository,
+    private val iyzicoPaymentEventBus: IyzicoPaymentEventBus,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
@@ -44,10 +46,13 @@ class TripSummaryViewModel @Inject constructor(
 
     init {
         loadDefaultCard()
+        observePaymentCompletedEvents()
     }
 
     fun onIntent(intent: TripSummaryIntent) {
         when (intent) {
+            is TripSummaryIntent.PaymentMethodSelected ->
+                _uiState.update { it.copy(selectedPaymentMethod = intent.method) }
             TripSummaryIntent.PayClicked -> pay()
             TripSummaryIntent.DoneClicked ->
                 viewModelScope.launch { _effect.send(TripSummaryEffect.NavigateHome) }
@@ -71,25 +76,49 @@ class TripSummaryViewModel @Inject constructor(
         }
     }
 
+    // PaymentCheckout ekrani, payRental(IYZICO)'yu kendisi tamamlayip bu bus'a haber verir
+    // (bkz. PaymentCheckoutViewModel.completePayment). NavBackStackEntry'ler arasi
+    // SavedStateHandle ile sonuc tasima bu projede guvenilir calismadi (bkz. docs/decisions.md).
+    private fun observePaymentCompletedEvents() {
+        viewModelScope.launch {
+            iyzicoPaymentEventBus.paymentCompleted.collect { rentalId ->
+                if (rentalId == _uiState.value.rentalId) {
+                    _uiState.update { it.copy(isPaid = true) }
+                }
+            }
+        }
+    }
+
     private fun pay() {
         val state = _uiState.value
         if (state.isPaying) return
+        when (state.selectedPaymentMethod) {
+            PaymentMethod.IYZICO ->
+                viewModelScope.launch {
+                    _effect.send(TripSummaryEffect.NavigateToIyzicoCheckout(state.rentalId, state.totalPrice))
+                }
+            PaymentMethod.CARD -> payWithCardOrWallet(cardId = selectedCardId, requireCard = true)
+            PaymentMethod.WALLET -> payWithCardOrWallet(cardId = null, requireCard = false)
+        }
+    }
+
+    private fun payWithCardOrWallet(cardId: String?, requireCard: Boolean) {
         viewModelScope.launch {
+            if (requireCard && cardId == null) {
+                _effect.send(TripSummaryEffect.ShowError("Kayıtlı kart bulunamadı."))
+                return@launch
+            }
             _uiState.update { it.copy(isPaying = true) }
-            // Gercek odeme: POST /rentals/{id}/pay. Ekranda kart gosterildiginden
-            // yontem CARD (default kartin id'si ile); kart yoksa cuzdan bakiyesine
-            // dusulur ki odeme yine de tamamlanabilsin (seed cuzdan bakiyesi var).
-            val cardId = selectedCardId
             val dto = if (cardId != null) {
                 PayRentalDto(method = "CARD", cardId = cardId)
             } else {
                 PayRentalDto(method = "WALLET")
             }
-            val result = rentalRepository.payRental(state.rentalId, dto)
+            val result = rentalRepository.payRental(_uiState.value.rentalId, dto)
             _uiState.update { it.copy(isPaying = false) }
             result
                 .onSuccess { _uiState.update { current -> current.copy(isPaid = true) } }
-                .onFailure { _effect.send(TripSummaryEffect.ShowError(it.message ?: "Ödeme yapılamadı.")) }
+                .onFailure { error -> _effect.send(TripSummaryEffect.ShowError(error.message ?: "Ödeme yapılamadı.")) }
         }
     }
 }

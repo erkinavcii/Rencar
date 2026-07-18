@@ -109,6 +109,11 @@ object NetworkModule {
 
     @Provides
     @Singleton
+    fun provideIyzicoService(retrofit: Retrofit): IyzicoService =
+        retrofit.create(IyzicoService::class.java)
+
+    @Provides
+    @Singleton
     fun provideTokenManager(@ApplicationContext context: Context): TokenManager =
         TokenManager(context)
 }

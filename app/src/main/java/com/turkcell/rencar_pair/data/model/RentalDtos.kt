@@ -101,9 +101,10 @@ data class ActiveRentalResponseDto(
 
 @Serializable
 data class PayRentalDto(
-    val method: String, // WALLET, CARD
+    val method: String, // WALLET, CARD, IYZICO
     val cardId: String? = null, // yalniz CARD yonteminde zorunlu
-    val discountCode: String? = null
+    val discountCode: String? = null, // IYZICO yonteminde kullanilamaz
+    val iyzicoPaymentId: String? = null // yalniz IYZICO yonteminde zorunlu
 )
 
 @Serializable

@@ -1,5 +1,7 @@
 package com.turkcell.rencar_pair.ui.tripsummary
 
+enum class PaymentMethod { WALLET, CARD, IYZICO }
+
 data class TripSummaryUiState(
     val rentalId: String = "",
     val brand: String = "",
@@ -8,6 +10,7 @@ data class TripSummaryUiState(
     val durationSeconds: Long = 0L,
     val distanceMeters: Double = 0.0,
     val totalPrice: Double = 0.0,
+    val selectedPaymentMethod: PaymentMethod = PaymentMethod.WALLET,
     val cardLabel: String = "",
     val isLoadingCard: Boolean = true,
     val isPaying: Boolean = false,
@@ -21,11 +24,13 @@ data class TripSummaryUiState(
 }
 
 sealed interface TripSummaryIntent {
+    data class PaymentMethodSelected(val method: PaymentMethod) : TripSummaryIntent
     data object PayClicked : TripSummaryIntent
     data object DoneClicked : TripSummaryIntent
 }
 
 sealed interface TripSummaryEffect {
+    data class NavigateToIyzicoCheckout(val rentalId: String, val totalPrice: Double) : TripSummaryEffect
     data object NavigateHome : TripSummaryEffect
     data class ShowError(val message: String) : TripSummaryEffect
 }
