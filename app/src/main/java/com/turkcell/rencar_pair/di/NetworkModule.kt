@@ -10,6 +10,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import kotlinx.serialization.json.Json
+import okhttp3.Interceptor
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -31,15 +32,30 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideLoggingInterceptor(): HttpLoggingInterceptor = HttpLoggingInterceptor().apply {
-        // Yalniz debug build'de tam govde loglanir. Release'de kapatiliyor: govde
-        // loglari hem gurultu (multipart foto yuklemede binary cop) hem de guvenlik
-        // riski (token'lar, kisisel veri Authorization header'i ve govdelerde acikca
-        // gorunur) tasiyor.
-        level = if (BuildConfig.DEBUG) {
-            HttpLoggingInterceptor.Level.BODY
-        } else {
-            HttpLoggingInterceptor.Level.NONE
+    fun provideLoggingInterceptor(): Interceptor {
+        // Release: hicbir sey loglanmaz. Govde loglari token/kisisel veri (ehliyet,
+        // telefon, kart) sizdirir; Authorization header'i da acikca gorunur.
+        if (!BuildConfig.DEBUG) {
+            return Interceptor { chain -> chain.proceed(chain.request()) }
+        }
+
+        // Debug: normal (JSON) istekler tam govdeyle loglanir - API hata ayiklamasi
+        // icin gerekli. Ancak multipart istekler (foto yukleme) yalniz header'la
+        // loglanir: binary JPEG govdesi Logcat'i okunamaz cop karakterlerle
+        // dolduruyordu. HttpLoggingInterceptor bunu kendisi ayiklayamiyor cunku
+        // isProbablyUtf8 yalniz govdenin basina (multipart sinir + alan adlari,
+        // UTF-8) bakip tumunu metin saniyor.
+        val fullBodyLogger = HttpLoggingInterceptor().apply {
+            level = HttpLoggingInterceptor.Level.BODY
+        }
+        val headersOnlyLogger = HttpLoggingInterceptor().apply {
+            level = HttpLoggingInterceptor.Level.HEADERS
+        }
+        return Interceptor { chain ->
+            val isMultipart = chain.request().body?.contentType()?.type
+                .equals("multipart", ignoreCase = true)
+            val delegate = if (isMultipart) headersOnlyLogger else fullBodyLogger
+            delegate.intercept(chain)
         }
     }
 
@@ -48,7 +64,7 @@ object NetworkModule {
     fun provideOkHttpClient(
         authInterceptor: AuthInterceptor,
         tokenAuthenticator: TokenAuthenticator,
-        loggingInterceptor: HttpLoggingInterceptor
+        loggingInterceptor: Interceptor
     ): OkHttpClient = OkHttpClient.Builder()
         .addInterceptor(authInterceptor)
         .authenticator(tokenAuthenticator)

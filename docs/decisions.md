@@ -454,3 +454,13 @@
 - Yakınlık Sayacı — Düzeltme 1 (Gerçek Harita Görünüm Alanı): Kullanıcı ayrıca "-" ile uzaklaştıkça sayının haritanın o an gösterdiği gerçek alana göre artmasını istedi. Sabit bayrak/yarıçap yerine `MapLibreMap.projection.visibleRegion.latLngBounds` her kamera hareketinde (`addOnCameraIdleListener`) `HomeIntent.MapBoundsChanged` ile `HomeUiState.visibleMapBounds`'a (yeni `GeoBounds` tipi) aktarılıp sayaç bu gerçek sınırlar içindeki araçları sayacak şekilde değiştirildi; `isFocusedOnUserLocation` kaldırıldı.
 
 - Yakınlık Sayacı — Düzeltme 2 (Görünüm Alanı + 5km Birleşimi): "Konumuma git" haritayı zoom 15'e (kullanıcının GPS'ine) kilitlediğinden, bu kadar yakın zoom'da görünen alan çok küçük kalıp içinde gerçekten 0 araç olabiliyor — bu da "0 araç" gibi yanıltıcı bir sonuç veriyordu. Kullanıcıyla görüşülüp `nearbyVehicleCount`, görünen alan (`visibleMapBounds`) İLE kullanıcının 5 km yarıçapının (`NEARBY_RADIUS_METERS`, geri eklendi) BİRLEŞİMİNİ (OR) sayacak şekilde son haline getirildi: "-" ile uzaklaşınca görünen alan büyüdükçe sayı artmaya devam ediyor, ama "konumuma git" sonrası zoom çok yakınken de en az 5 km içindekiler her zaman sayıma dahil oluyor.
+
+### Aktif Yolculuk Ekranı — Araç Marker'ı Araba İkonu + Yumuşak Hareket
+
+- Karar: Aktif Yolculuk haritasındaki araç marker'ı, önceden her yeni Socket.IO konum güncellemesinde (`renderMapMarkers` ile tüm marker'lar silinip yeniden ekleniyordu) bir noktadan diğerine "ışınlanıyordu". Kullanıcı, gerçek bir araç figürünün yolda ilerliyormuş gibi görünmesini istedi.
+
+- Son Güncelleme Tarihi: 18.07.2026
+
+- Uygulama: `ui/common/map/RencarMapMarkers.kt`'ye `createCarMarkerBitmap()` eklendi — projede zaten var olan `ic_car.xml` (yandan görünüşlü araba ikonu) renkli bir daire içinde bitmap'e çevrilip marker ikonu olarak kullanılıyor. `ActiveRentalScreen.ActiveRentalMapView`, marker'ı artık `remember` ile saklayıp (`vehicleMarker`) her yeni konumda silip yeniden eklemek yerine `Marker.setPosition()` + `MapLibreMap.updateMarker()` ile bir önceki konumdan yeniye ~1 saniyede (24 adım, 40ms aralıklarla, backend'in ~1-1.5 sn'lik gönderim aralığıyla uyumlu) doğrusal enterpolasyonla kaydırıyor.
+
+- Kapsam Dışı Bırakılan (bilinçli): `ic_car.xml` yandan görünüşlü bir ikon olduğundan aracın gerçek yönüne (bearing) göre döndürülmüyor — döndürülürse yan yatmış gibi görünür. Kullanıcıyla görüşülüp ikon sabit yönde tutulmasına karar verildi. Ayrıca gerçek yol geometrisine oturma (map-matching) da kapsam dışı — bunun için ayrı bir routing/map-matching servisi (ör. OSRM/Valhalla) gerekir, projede yok.

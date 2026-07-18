@@ -7,6 +7,9 @@ import android.graphics.Paint
 import android.graphics.RectF
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
+import androidx.core.content.ContextCompat
+import androidx.core.graphics.drawable.toBitmap
+import com.turkcell.rencar_pair.R
 import org.maplibre.android.annotations.IconFactory
 import org.maplibre.android.annotations.Marker
 import org.maplibre.android.annotations.MarkerOptions
@@ -38,6 +41,30 @@ fun renderMapMarkers(
         markerToItemId[marker] = item.id
     }
     return markerToItemId
+}
+
+// Aktif Yolculuk ekranindaki aracin canli konum marker'i icin: renkli bir daire
+// icinde projede zaten var olan ic_car.xml (yandan gorunuslu araba) ikonu.
+// Yandan gorunuslu oldugundan yon (bearing) rotasyonu uygulanmiyor - dondurulurse
+// yan yatmis gibi gorunur; marker sabit yonde durup yalnizca konumu kayar
+// (bkz. ActiveRentalScreen.ActiveRentalMapView, konum arasi yumusak animasyon).
+fun createCarMarkerBitmap(context: Context, backgroundColor: Int, sizeDp: Int = 44): Bitmap {
+    val density = context.resources.displayMetrics.density
+    val size = (sizeDp * density).toInt()
+
+    val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+    val canvas = Canvas(bitmap)
+    val backgroundPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = backgroundColor }
+    val radius = size / 2f
+    canvas.drawCircle(radius, radius, radius, backgroundPaint)
+
+    val carDrawable = ContextCompat.getDrawable(context, R.drawable.ic_car) ?: return bitmap
+    val iconSize = (size * 0.6f).toInt()
+    val iconBitmap = carDrawable.toBitmap(width = iconSize, height = iconSize)
+    val offset = (size - iconSize) / 2f
+    canvas.drawBitmap(iconBitmap, offset, offset, null)
+
+    return bitmap
 }
 
 private fun createLabelMarkerBitmap(label: String, backgroundColor: Int): Bitmap {

@@ -49,17 +49,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.turkcell.rencar_pair.ui.common.map.GeoPoint
-import com.turkcell.rencar_pair.ui.common.map.MapMarkerItem
+import com.turkcell.rencar_pair.ui.common.map.createCarMarkerBitmap
 import com.turkcell.rencar_pair.ui.common.map.RencarMap
 import com.turkcell.rencar_pair.ui.common.map.enableLiveLocation
 import com.turkcell.rencar_pair.ui.common.map.fitCameraToPoints
-import com.turkcell.rencar_pair.ui.common.map.renderMapMarkers
 import com.turkcell.rencar_pair.ui.theme.BackgroundLight
 import com.turkcell.rencar_pair.ui.theme.BackgroundDark
 import com.turkcell.rencar_pair.ui.theme.BorderDefaultDark
@@ -86,6 +86,10 @@ import com.turkcell.rencar_pair.ui.theme.statValue
 import com.turkcell.rencar_pair.ui.theme.titleL
 import com.turkcell.rencar_pair.ui.theme.titleM
 import kotlinx.coroutines.delay
+import org.maplibre.android.annotations.IconFactory
+import org.maplibre.android.annotations.Marker
+import org.maplibre.android.annotations.MarkerOptions
+import org.maplibre.android.geometry.LatLng as MapLibreLatLng
 import org.maplibre.android.location.modes.CameraMode
 import org.maplibre.android.maps.MapLibreMap
 
@@ -261,8 +265,6 @@ fun ActiveRentalScreen(
                         modifier = Modifier.fillMaxSize(),
                         hasLocationPermission = hasLocationPermission,
                         vehicleLocation = state.vehicleLocation,
-                        vehicleId = state.vehicleId,
-                        vehicleLabel = state.plate.ifBlank { "Araç" },
                         // Mesafe artik sunucudan periyodik sorgulanan gercek distanceKm ile
                         // gosteriliyor (bkz. ActiveRentalViewModel.pollActiveRental); bu
                         // callback yalnizca haritadaki mavi noktayi guncelliyor.
@@ -490,12 +492,11 @@ private fun ActiveRentalMapView(
     modifier: Modifier = Modifier,
     hasLocationPermission: Boolean,
     vehicleLocation: ActiveRentalLatLng?,
-    vehicleId: String,
-    vehicleLabel: String,
     onLocationUpdate: (Location) -> Unit,
 ) {
     val context = LocalContext.current
     var mapLibreMap by remember { mutableStateOf<MapLibreMap?>(null) }
+    var vehicleMarker by remember { mutableStateOf<Marker?>(null) }
 
     DisposableEffect(mapLibreMap, hasLocationPermission) {
         val map = mapLibreMap
@@ -509,23 +510,39 @@ private fun ActiveRentalMapView(
         onDispose { disposeLocation() }
     }
 
+    // Arac marker'i her yeni konumda silinip yeniden eklenmez (bu, konumun
+    // "isinlanmasina" yol aciyordu); ayni marker referansi tutulup konumu bir
+    // onceki noktadan yeniye kademeli olarak (yaklasik 1 sn'de, backend'in
+    // gonderim araligiyla uyumlu) kaydirilir. ic_car.xml yandan gorunuslu
+    // oldugundan yon (bearing) rotasyonu uygulanmiyor - sabit yonde durur.
     LaunchedEffect(mapLibreMap, vehicleLocation) {
         val map = mapLibreMap ?: return@LaunchedEffect
         val location = vehicleLocation ?: return@LaunchedEffect
-        val vehiclePoint = GeoPoint(location.latitude, location.longitude)
-        renderMapMarkers(
-            context = context,
-            map = map,
-            items = listOf(
-                MapMarkerItem(
-                    id = vehicleId,
-                    position = vehiclePoint,
-                    label = vehicleLabel,
-                    color = Primary,
-                ),
-            ),
-        )
-        fitCameraToPoints(context, map, listOf(vehiclePoint))
+        val target = MapLibreLatLng(location.latitude, location.longitude)
+
+        val marker = vehicleMarker
+        if (marker == null) {
+            val bitmap = createCarMarkerBitmap(context, Primary.toArgb())
+            vehicleMarker = map.addMarker(
+                MarkerOptions()
+                    .position(target)
+                    .icon(IconFactory.getInstance(context).fromBitmap(bitmap)),
+            )
+        } else {
+            val start = marker.position
+            val steps = 24
+            repeat(steps) { step ->
+                val fraction = (step + 1) / steps.toFloat()
+                marker.position = MapLibreLatLng(
+                    start.latitude + (target.latitude - start.latitude) * fraction,
+                    start.longitude + (target.longitude - start.longitude) * fraction,
+                )
+                map.updateMarker(marker)
+                delay(40L)
+            }
+        }
+
+        fitCameraToPoints(context, map, listOf(GeoPoint(location.latitude, location.longitude)))
     }
 
     RencarMap(

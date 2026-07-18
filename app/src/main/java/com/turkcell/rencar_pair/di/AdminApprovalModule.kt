@@ -7,9 +7,9 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import kotlinx.serialization.json.Json
+import okhttp3.Interceptor
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
-import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
 import javax.inject.Singleton
@@ -25,7 +25,7 @@ import javax.inject.Singleton
  * TokenAuthenticator icermeyen, tamamen ayri bir OkHttpClient+Retrofit kuruluyor;
  * musteri oturumuna (TokenManager, SessionManager) hic dokunmaz.
  *
- * Json ve HttpLoggingInterceptor NetworkModule'daki mevcut @Singleton binding'lerden
+ * Json ve loglama Interceptor'i NetworkModule'daki mevcut @Singleton binding'lerden
  * enjekte edilir (tekrar tanimlanmiyor).
  */
 @Module
@@ -36,7 +36,7 @@ object AdminApprovalModule {
     @Singleton
     fun provideAdminApprovalService(
         json: Json,
-        loggingInterceptor: HttpLoggingInterceptor,
+        loggingInterceptor: Interceptor,
     ): AdminApprovalService {
         val okHttpClient = OkHttpClient.Builder()
             .addInterceptor(loggingInterceptor)

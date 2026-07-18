@@ -3,6 +3,8 @@ package com.turkcell.rencar_pair.ui.tripsummary
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.turkcell.rencar_pair.data.model.PayRentalDto
+import com.turkcell.rencar_pair.data.repository.RentalRepository
 import com.turkcell.rencar_pair.data.wallet.WalletRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
@@ -17,8 +19,12 @@ import javax.inject.Inject
 @HiltViewModel
 class TripSummaryViewModel @Inject constructor(
     private val walletRepository: WalletRepository,
+    private val rentalRepository: RentalRepository,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
+
+    // Ekranda gosterilen default kartin id'si; odeme PayRentalDto'da bunu tasir.
+    private var selectedCardId: String? = null
 
     private val _uiState = MutableStateFlow(
         TripSummaryUiState(
@@ -53,6 +59,7 @@ class TripSummaryViewModel @Inject constructor(
             walletRepository.getCards()
                 .onSuccess { cards ->
                     val defaultCard = cards.find { it.isDefault } ?: cards.firstOrNull()
+                    selectedCardId = defaultCard?.id
                     _uiState.update {
                         it.copy(
                             isLoadingCard = false,
@@ -69,8 +76,16 @@ class TripSummaryViewModel @Inject constructor(
         if (state.isPaying) return
         viewModelScope.launch {
             _uiState.update { it.copy(isPaying = true) }
-            val title = "${state.brand} ${state.model} kiralama"
-            val result = walletRepository.payFromBalance(state.totalPrice, title)
+            // Gercek odeme: POST /rentals/{id}/pay. Ekranda kart gosterildiginden
+            // yontem CARD (default kartin id'si ile); kart yoksa cuzdan bakiyesine
+            // dusulur ki odeme yine de tamamlanabilsin (seed cuzdan bakiyesi var).
+            val cardId = selectedCardId
+            val dto = if (cardId != null) {
+                PayRentalDto(method = "CARD", cardId = cardId)
+            } else {
+                PayRentalDto(method = "WALLET")
+            }
+            val result = rentalRepository.payRental(state.rentalId, dto)
             _uiState.update { it.copy(isPaying = false) }
             result
                 .onSuccess { _uiState.update { current -> current.copy(isPaid = true) } }
