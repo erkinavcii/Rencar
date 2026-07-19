@@ -1,6 +1,6 @@
-# Rencar - Araç Paylaşım Mobil Uygulaması
+# Rencar - Araç Kiralama Mobil Uygulaması
 
-Rencar, modern Android mimari standartları ve premium kullanıcı deneyimi vizyonuyla geliştirilmiş, uçtan uca canlı API entegrasyonlarına sahip bir araç paylaşım (car sharing) mobil uygulamasıdır. Proje, Turkcell pair programming ekibi ve jürisine hitap edecek şekilde çift tema (Açık ve Koyu Tema) uyumluluğuyla tasarlanmıştır.
+Rencar, modern Android mimari standartları ve premium kullanıcı deneyimi vizyonuyla geliştirilmiş, uçtan uca canlı API entegrasyonlarına sahip bir araç kiralama mobil uygulamasıdır. Proje, Turkcell pair programming ekibi ve jürisine hitap edecek şekilde çift tema (Açık ve Koyu Tema) uyumluluğuyla tasarlanmıştır.
 
 ---
 
