@@ -11,35 +11,40 @@ Uygulamanın kullanıcı akışı boyunca yer alan 14 ekran görseli ve açıkla
 ### 1. Oturum, Kayıt & Cüzdan Akışı
 | Açılış (Splash) | Kayıt Ol (Register) | Giriş Yap (Login) |
 | :---: | :---: | :---: |
-| ![Splash](docs/images/splash.png) <br> *Açılış Ekranı* | ![Register](docs/images/register.png) <br> *Kullanıcı Kaydı* | ![Login](docs/images/login.png) <br> *Telefon Numarası Girişi* |
+| <img src="docs/images/splash.png" width="260" style="border:1px solid #d0d7de; border-radius:12px;"/> <br> *Açılış Ekranı* | <img src="docs/images/register.png" width="260" style="border:1px solid #d0d7de; border-radius:12px;"/> <br> *Kullanıcı Kaydı* | <img src="docs/images/login.png" width="260" style="border:1px solid #d0d7de; border-radius:12px;"/> <br> *Telefon Numarası Girişi* |
 
 | Profil Ekranı | Cüzdan & Kartlar | Kart Ekleme |
 | :---: | :---: | :---: |
-| ![Profile](docs/images/profile.png) <br> *Üye Profil Detayları* | ![Wallet](docs/images/wallet.png) <br> *Bakiye ve Kayıtlı Kartlar* | ![Card](docs/images/card.png) <br> *Yeni Kredi Kartı Ekleme* |
+| <img src="docs/images/profile.png" width="260" style="border:1px solid #d0d7de; border-radius:12px;"/> <br> *Üye Profil Detayları* | <img src="docs/images/wallet.png" width="260" style="border:1px solid #d0d7de; border-radius:12px;"/> <br> *Bakiye ve Kayıtlı Kartlar* | <img src="docs/images/card.png" width="260" style="border:1px solid #d0d7de; border-radius:12px;"/> <br> *Yeni Kredi Kartı Ekleme* |
 
-| GPS Hassasiyeti |
-| :---: |
-| <img src="docs/images/Gps_accuracy_setting.png" width="260"/> <br> *Sistem Konum İzinleri* |
+**GPS Hassasiyeti**
+
+<p align="center">
+  <img src="docs/images/Gps_accuracy_setting.png" width="260" style="border:1px solid #d0d7de; border-radius:12px;"/>
+  <br><em>Sistem Konum İzinleri</em>
+</p>
 
 
 ### 2. Araç Arama, Ehliyet & AI Doğrulama Akışı
 | Müsait Araçlar Haritası | Ehliyet Belgeleri | AI Yüz Doğrulama |
 | :---: | :---: | :---: |
-| ![Map](docs/images/map.png) <br> *Ana Ekran / MapLibre Haritası* | ![License](docs/images/license.png) <br> *Ehliyet Ön/Arka Yükleme* | ![License Verify](docs/images/licence_verify.png) <br> *Cihaz Üstü Yüz Eşleştirme* |
+| <img src="docs/images/map.png" width="260" style="border:1px solid #d0d7de; border-radius:12px;"/> <br> *Ana Ekran / MapLibre Haritası* | <img src="docs/images/license.png" width="260" style="border:1px solid #d0d7de; border-radius:12px;"/> <br> *Ehliyet Ön/Arka Yükleme* | <img src="docs/images/licence_verify.png" width="260" style="border:1px solid #d0d7de; border-radius:12px;"/> <br> *Cihaz Üstü Yüz Eşleştirme* |
 
 ### 3. Kiralama, Yolculuk & İyzico Ödeme Akışı
 | Araç Seçim ve Ayrıntıları | Aktif Yolculuk Paneli | Yolculuk Canlı Harita Takibi |
 | :---: | :---: | :---: |
-| ![Rental Car](docs/images/rental_car.png) <br> *Kiralanacak Araç Detayı* | ![Active Rental](docs/images/active_rental.png) <br> *Sayaçlar ve Kilit Kontrolü* | ![Active Rental 2](docs/images/active_rental2.png) <br> *Soket ile Canlı Araç Takibi* |
+| <img src="docs/images/rental_car.png" width="260" style="border:1px solid #d0d7de; border-radius:12px;"/> <br> *Kiralanacak Araç Detayı* | <img src="docs/images/active_rental.png" width="260" style="border:1px solid #d0d7de; border-radius:12px;"/> <br> *Sayaçlar ve Kilit Kontrolü* | <img src="docs/images/active_rental2.png" width="260" style="border:1px solid #d0d7de; border-radius:12px;"/> <br> *Soket ile Canlı Araç Takibi* |
 
 | Yolculuk Özeti | İyzico Ödeme Sayfası |
 | :---: | :---: |
-| ![Payment](docs/images/payment.png) <br> *Ücret ve İndirim Detayları* | ![Iyzico](docs/images/iyzico.png) <br> *WebView Sandbox Ödeme Formu* |
+| <img src="docs/images/payment.png" width="260" style="border:1px solid #d0d7de; border-radius:12px;"/> <br> *Ücret ve İndirim Detayları* | <img src="docs/images/iyzico.png" width="260" style="border:1px solid #d0d7de; border-radius:12px;"/> <br> *WebView Sandbox Ödeme Formu* |
 
 ### 4. Kiralama Geçmişi (Kiralamalarım) Akışı
-| Kiralamalarım |
-| :---: |
-| <img src="docs/images/history.png" width="260"/> <br> *Bu Ay / Tüm Zamanlar Özeti, Arama, Ay Filtresi ve Yolculuk Detay Paneli* |
+
+<p align="center">
+  <img src="docs/images/history.png" width="260" style="border:1px solid #d0d7de; border-radius:12px;"/>
+  <br><em>Bu Ay / Tüm Zamanlar Özeti, Arama, Ay Filtresi ve Yolculuk Detay Paneli</em>
+</p>
 
 ---
 
@@ -213,7 +218,7 @@ base.url=https\://rencarv2.halitkalayci.com/
 
 ## 👥 Ekip
 
-Turkcell Geleceği Yazan Gençler 5.0 — Kotlin Bootcamp kapsamında geliştirilmiştir.
+Turkcell Geleceği Yazanlar 5.0 — Kotlin Bootcamp kapsamında geliştirilmiştir.
 
 * Melike Su Koçyiğit
 * Mehmet Karabalcı
