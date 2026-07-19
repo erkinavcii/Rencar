@@ -19,7 +19,7 @@ Uygulamanın kullanıcı akışı boyunca yer alan 14 ekran görseli ve açıkla
 
 | GPS Hassasiyeti |
 | :---: |
-| ![GPS](docs/images/Gps_accuracy_setting.png) <br> *Sistem Konum İzinleri* |
+| <img src="docs/images/Gps_accuracy_setting.png" width="260"/> <br> *Sistem Konum İzinleri* |
 
 
 ### 2. Araç Arama, Ehliyet & AI Doğrulama Akışı
@@ -35,6 +35,11 @@ Uygulamanın kullanıcı akışı boyunca yer alan 14 ekran görseli ve açıkla
 | Yolculuk Özeti | İyzico Ödeme Sayfası |
 | :---: | :---: |
 | ![Payment](docs/images/payment.png) <br> *Ücret ve İndirim Detayları* | ![Iyzico](docs/images/iyzico.png) <br> *WebView Sandbox Ödeme Formu* |
+
+### 4. Kiralama Geçmişi (Kiralamalarım) Akışı
+| Kiralamalarım |
+| :---: |
+| <img src="docs/images/history.png" width="260"/> <br> *Bu Ay / Tüm Zamanlar Özeti, Arama, Ay Filtresi ve Yolculuk Detay Paneli* |
 
 ---
 
