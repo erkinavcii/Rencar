@@ -17,6 +17,7 @@ import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ConfirmationNumber
+import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SwapVert
@@ -524,6 +525,8 @@ private fun TripDetailBottomSheet(trip: HistoryTrip, onDismiss: () -> Unit) {
             DetailRow(icon = Icons.Default.Schedule, label = "Süre", value = trip.durationLabel)
             Spacer(Modifier.height(12.dp))
             DetailRow(icon = Icons.Default.CalendarMonth, label = "Tarih", value = trip.fullDateLabel)
+            Spacer(Modifier.height(12.dp))
+            DetailRow(icon = Icons.Default.Payments, label = "Ödeme Yöntemi", value = paymentMethodLabel(trip.paymentMethod))
 
             Spacer(Modifier.height(18.dp))
             Box(
@@ -548,6 +551,13 @@ private fun TripDetailBottomSheet(trip: HistoryTrip, onDismiss: () -> Unit) {
             }
         }
     }
+}
+
+private fun paymentMethodLabel(method: String?): String = when (method) {
+    "WALLET" -> "Cüzdan"
+    "CARD" -> "Kart"
+    "IYZICO" -> "İyzico"
+    else -> "-"
 }
 
 @Composable

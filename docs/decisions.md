@@ -505,4 +505,12 @@
 
 - Kapsam Dışı Bırakılan (bilinçli): Backend bazı planlarda `POST /rentals` anında rental'ı gerçekten `ACTIVE` yapıyorsa (`docs/decisions.md`'deki önceki not), bu düzeltme hiçbir şey değiştirmez — `status` gerçekten `ACTIVE` döndüğü için ekran normal şekilde açılmaya devam eder; bu, istemci tarafında düzeltilebilecek bir durum değildir.
 
+### Kiralamalarım (History) Ekranı — Ödeme Yöntemi Detayı Eklendi (Düzeltme)
+
+- Karar: Kullanıcı, kart/İyzico ile ödenen kiralamaların Cüzdan ekranındaki "Son işlemler" listesinde görünmemesinin bir bug olup olmadığını sordu. İnceleme sonucu bu davranışın tasarım gereği olduğu netleşti (o liste bir cüzdan hareket dökümü; bakiyeyi etkilemeyen ödemeler orada görünmez) ve kart/İyzico ile ödenen kiralamaların zaten "Kiralamalarım" ekranına düştüğü doğrulandı. Ancak kullanıcı bu ekranda hangi yöntemle ödendiğinin (Cüzdan/Kart/İyzico) hiç gösterilmediğini bildirdi. Kontrolde, backend'in `RentalResponseDto.paymentMethod` alanını zaten döndürdüğü ama `HistoryRepositoryImpl.toHistoryTrip()`'in bu alanı hiç okumadığı, `HistoryTrip` modelinin bu alanı hiç taşımadığı görüldü — veri backend'den geliyor, yalnızca client tarafında gösterilmiyordu.
+
+- Son Güncelleme Tarihi: 19.07.2026
+
+- Uygulama: `HistoryModels.kt`'deki `HistoryTrip`'e `paymentMethod: String?` alanı eklendi. `HistoryRepositoryImpl.toHistoryTrip()` bu alanı `RentalResponseDto.paymentMethod`'dan map'liyor. `HistoryScreen.kt`'deki `TripDetailBottomSheet`'e `Icons.Default.Payments` ikonuyla yeni bir `DetailRow` ("Ödeme Yöntemi") eklendi; `paymentMethodLabel()` yardımcı fonksiyonu `WALLET/CARD/IYZICO` değerlerini "Cüzdan/Kart/İyzico" olarak Türkçeleştiriyor, bilinmeyen/null değerde "-" gösteriyor.
+
 - Genel Ders: Bu projede iki farklı `NavBackStackEntry` arasında sonuç taşımak için `SavedStateHandle` kullanılacaksa, cihazda uçtan uca doğrulanmadan güvenilir varsayılmamalı; Hilt `@Singleton` + `SharedFlow` tabanlı bir event bus, iki ViewModel'in aynı nesneyi paylaştığından emin olunan (Hilt garantisi) daha basit ve öngörülebilir bir alternatiftir — benzer "ekran A'dan ekran B'ye sonuç bildirme" ihtiyaçlarında önce bu yaklaşım değerlendirilmeli.

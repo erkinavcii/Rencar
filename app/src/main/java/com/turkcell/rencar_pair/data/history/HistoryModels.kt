@@ -12,6 +12,7 @@ data class HistoryTrip(
     val durationLabel: String,
     val durationMinutes: Long,
     val price: Double,
+    val paymentMethod: String?, // WALLET, CARD, IYZICO
     val routeStart: Offset,
     val routeEnd: Offset,
 )

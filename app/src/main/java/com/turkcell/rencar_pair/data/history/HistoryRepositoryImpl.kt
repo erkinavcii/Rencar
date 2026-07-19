@@ -110,6 +110,7 @@ class HistoryRepositoryImpl @Inject constructor(
             durationLabel = durationLabel,
             durationMinutes = durationMinutesValue,
             price = totalPrice ?: 0.0,
+            paymentMethod = paymentMethod,
             routeStart = routeStart,
             routeEnd = routeEnd,
         )
