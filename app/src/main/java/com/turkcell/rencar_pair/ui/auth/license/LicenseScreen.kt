@@ -39,6 +39,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -137,13 +138,16 @@ fun LicenseScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                BackButton(onClick = {
-                    if (state.currentStep == LicenseStep.EHLIYET) {
-                        onBack()
-                    } else {
-                        onIntent(LicenseIntent.BackStepClicked)
-                    }
-                })
+                BackButton(
+                    onClick = {
+                        if (state.currentStep == LicenseStep.EHLIYET) {
+                            onBack()
+                        } else {
+                            onIntent(LicenseIntent.BackStepClicked)
+                        }
+                    },
+                    modifier = Modifier.testTag("license_back_button"),
+                )
                 Spacer(modifier = Modifier.width(16.dp))
                 Column {
                     Text(
@@ -482,7 +486,8 @@ fun LicenseScreen(
                     enabled = !state.isAiApproving,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(56.dp),
+                        .height(56.dp)
+                        .testTag("license_ai_approve_button"),
                     shape = RoundedCornerShape(16.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Primary,
@@ -519,7 +524,8 @@ fun LicenseScreen(
                     onClick = { onIntent(LicenseIntent.MockBypassApprove) },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(56.dp),
+                        .height(56.dp)
+                        .testTag("license_mock_bypass_button"),
                     shape = RoundedCornerShape(16.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = SuccessDefault,
@@ -572,7 +578,8 @@ fun LicenseScreen(
                 enabled = isButtonEnabled,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(56.dp),
+                    .height(56.dp)
+                    .testTag("license_submit_button"),
                 shape = RoundedCornerShape(16.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Primary,
@@ -612,7 +619,8 @@ fun LicenseScreen(
                         .clip(RoundedCornerShape(16.dp))
                         .background(MaterialTheme.colorScheme.errorContainer)
                         .clickable { onIntent(LicenseIntent.Logout) }
-                        .padding(vertical = 15.dp),
+                        .padding(vertical = 15.dp)
+                        .testTag("license_logout_button"),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.Center,
                 ) {

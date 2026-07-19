@@ -40,6 +40,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.input.ImeAction
@@ -148,6 +149,7 @@ fun RegisterScreen(
                 placeholder = "Ahmet Yilmaz",
                 keyboardType = KeyboardType.Text,
                 imeAction = ImeAction.Next,
+                testTag = "register_fullname_input",
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -159,6 +161,7 @@ fun RegisterScreen(
                 placeholder = "ornek@eposta.com",
                 keyboardType = KeyboardType.Email,
                 imeAction = ImeAction.Next,
+                testTag = "register_email_input",
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -186,6 +189,8 @@ fun RegisterScreen(
                 onToggleVisibility = { onIntent(RegisterIntent.TogglePasswordVisibility) },
                 imeAction = ImeAction.Done,
                 onDone = { onIntent(RegisterIntent.Submit); keyboardController?.hide() },
+                testTag = "register_password_input",
+                toggleTestTag = "register_password_toggle",
             )
 
             Spacer(modifier = Modifier.height(32.dp))
@@ -195,7 +200,8 @@ fun RegisterScreen(
                 enabled = state.isSubmitEnabled,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(56.dp),
+                    .height(56.dp)
+                    .testTag("register_submit_button"),
                 shape = RoundedCornerShape(16.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Primary,
@@ -237,7 +243,8 @@ private fun BackButton(
             .size(40.dp)
             .clip(RoundedCornerShape(12.dp))
             .background(MaterialTheme.colorScheme.surfaceVariant)
-            .clickable(onClick = onClick),
+            .clickable(onClick = onClick)
+            .testTag("register_back_button"),
         contentAlignment = Alignment.Center,
     ) {
         Icon(
@@ -257,6 +264,7 @@ private fun FormField(
     placeholder: String,
     keyboardType: KeyboardType,
     imeAction: ImeAction,
+    testTag: String,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier) {
@@ -270,7 +278,8 @@ private fun FormField(
                 .fillMaxWidth()
                 .height(54.dp)
                 .border(1.dp, fieldBorder, RoundedCornerShape(12.dp))
-                .padding(horizontal = 16.dp),
+                .padding(horizontal = 16.dp)
+                .testTag(testTag),
             textStyle = bodyM.copy(color = MaterialTheme.colorScheme.onSurface),
             keyboardOptions = KeyboardOptions(keyboardType = keyboardType, imeAction = imeAction),
             singleLine = true,
@@ -299,6 +308,8 @@ private fun PasswordField(
     onToggleVisibility: () -> Unit,
     imeAction: ImeAction,
     onDone: () -> Unit,
+    testTag: String,
+    toggleTestTag: String,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier) {
@@ -312,7 +323,8 @@ private fun PasswordField(
                 .fillMaxWidth()
                 .height(54.dp)
                 .border(1.dp, fieldBorder, RoundedCornerShape(12.dp))
-                .padding(horizontal = 16.dp),
+                .padding(horizontal = 16.dp)
+                .testTag(testTag),
             textStyle = bodyM.copy(color = MaterialTheme.colorScheme.onSurface),
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Password,
@@ -344,7 +356,8 @@ private fun PasswordField(
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier
                             .size(20.dp)
-                            .clickable(onClick = onToggleVisibility),
+                            .clickable(onClick = onToggleVisibility)
+                            .testTag(toggleTestTag),
                     )
                 }
             },
@@ -387,7 +400,8 @@ private fun PhoneInputRow(
                 .weight(1f)
                 .height(54.dp)
                 .border(1.dp, fieldBorder, RoundedCornerShape(12.dp))
-                .padding(horizontal = 16.dp),
+                .padding(horizontal = 16.dp)
+                .testTag("register_phone_input"),
             textStyle = bodyM.copy(color = MaterialTheme.colorScheme.onSurface),
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Phone,
@@ -427,7 +441,7 @@ private fun LoginLinkRow(
     androidx.compose.foundation.text.ClickableText(
         text = annotatedText,
         style = bodyM.copy(textAlign = TextAlign.Center),
-        modifier = modifier,
+        modifier = modifier.testTag("register_login_link"),
         onClick = { offset ->
             val start = annotatedText.indexOf("Giriş yap")
             if (offset >= start) onLoginClick()
