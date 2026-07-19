@@ -1,5 +1,6 @@
 package com.turkcell.rencar_pair.ui.vehiclecondition
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -96,6 +97,8 @@ fun VehicleConditionRoute(
     LaunchedEffect(Unit) {
         viewModel.effect.collect { effect ->
             when (effect) {
+                VehicleConditionEffect.NavigateBack -> onBack()
+
                 is VehicleConditionEffect.NavigateToActiveRental ->
                     onNavigateToActiveRental(
                         effect.rentalId,
@@ -126,7 +129,6 @@ fun VehicleConditionRoute(
     VehicleConditionScreen(
         state = uiState,
         onIntent = viewModel::onIntent,
-        onBack = onBack,
         snackbarHostState = snackbarHostState,
         modifier = modifier,
     )
@@ -136,11 +138,14 @@ fun VehicleConditionRoute(
 fun VehicleConditionScreen(
     state: VehicleConditionUiState,
     onIntent: (VehicleConditionIntent) -> Unit,
-    onBack: () -> Unit,
     snackbarHostState: SnackbarHostState,
     modifier: Modifier = Modifier,
 ) {
     val isBefore = state.mode == VehicleConditionMode.BEFORE
+
+    // Sistem/donanim geri tusu da ekrandaki ok ile ayni intent'i tetiklemeli; aksi halde
+    // BEFORE modunda PREPARING kiralama iptal edilmeden ekran kapanir (bkz. docs/decisions.md).
+    BackHandler { onIntent(VehicleConditionIntent.BackClicked) }
     val context = LocalContext.current
     val isDark = isSystemInDarkTheme()
     val textTertiary = if (isDark) TextTertiaryDark else TextTertiaryLight
@@ -186,7 +191,7 @@ fun VehicleConditionScreen(
                         .size(40.dp)
                         .clip(RoundedCornerShape(12.dp))
                         .background(MaterialTheme.colorScheme.surfaceVariant)
-                        .clickable(onClick = onBack),
+                        .clickable(onClick = { onIntent(VehicleConditionIntent.BackClicked) }),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(

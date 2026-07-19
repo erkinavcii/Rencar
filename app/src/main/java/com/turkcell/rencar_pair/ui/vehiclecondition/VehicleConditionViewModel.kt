@@ -47,6 +47,23 @@ class VehicleConditionViewModel @Inject constructor(
             is VehicleConditionIntent.PhotoCaptured -> onPhotoCaptured(intent.side, intent.bytes)
 
             VehicleConditionIntent.ConfirmClicked -> confirm()
+
+            VehicleConditionIntent.BackClicked -> onBackClicked()
+        }
+    }
+
+    // BEFORE modunda geri cikmak, PREPARING durumundaki kiralamayi backend'de yariminda
+    // asili birakirdi (bkz. docs/decisions.md); artik cancelPreparingRental cagrilarak
+    // kiralama gercekten iptal ediliyor. Rental zaten start edilmisse (PREPARING degilse)
+    // bu cagri hata donebilir, bu durumda da kullanici yine de geri gonderilir - baska
+    // yapilabilecek bir sey yok, sonucu snackbar ile kesmeye gerek yok.
+    private fun onBackClicked() {
+        val state = _uiState.value
+        viewModelScope.launch {
+            if (state.mode == VehicleConditionMode.BEFORE) {
+                rentalRepository.cancelPreparingRental(state.rentalId)
+            }
+            _effect.send(VehicleConditionEffect.NavigateBack)
         }
     }
 

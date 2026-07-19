@@ -298,6 +298,23 @@ fun RencarNavHost(
                         popUpTo(ROUTE_HOME)
                     }
                 },
+                onRedirectToVehicleConditionBefore = { rentalId, vehicleId, brand, model, plate ->
+                    navController.navigate(
+                        vehicleConditionRoute(
+                            mode = "BEFORE",
+                            rentalId = rentalId,
+                            vehicleId = vehicleId,
+                            brand = brand,
+                            model = model,
+                            plate = plate,
+                            pricePerDay = "0.0",
+                            durationSeconds = "0",
+                            distanceMeters = "0.0",
+                        ),
+                    ) {
+                        popUpTo(ROUTE_HOME)
+                    }
+                },
             )
         }
 

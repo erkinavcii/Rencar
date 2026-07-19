@@ -110,6 +110,13 @@ fun ActiveRentalRoute(
         durationSeconds: Long,
         distanceMeters: Double,
     ) -> Unit,
+    onRedirectToVehicleConditionBefore: (
+        rentalId: String,
+        vehicleId: String,
+        brand: String,
+        model: String,
+        plate: String,
+    ) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ActiveRentalViewModel = hiltViewModel(),
 ) {
@@ -163,6 +170,15 @@ fun ActiveRentalRoute(
                         effect.plate,
                         effect.durationSeconds,
                         effect.distanceMeters,
+                    )
+
+                is ActiveRentalEffect.RedirectToVehicleConditionBefore ->
+                    onRedirectToVehicleConditionBefore(
+                        effect.rentalId,
+                        effect.vehicleId,
+                        effect.brand,
+                        effect.model,
+                        effect.plate,
                     )
             }
         }

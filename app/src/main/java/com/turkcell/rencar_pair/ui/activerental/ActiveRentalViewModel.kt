@@ -67,6 +67,22 @@ class ActiveRentalViewModel @Inject constructor(
             val state = _uiState.value
             rentalRepository.getRentalDetails(state.rentalId)
                 .onSuccess { rental ->
+                    // Bu ekrana Home'daki "devam eden kiralama" yonlendirmesiyle de
+                    // ulasilabiliyor; rental gercekte hala PREPARING'de (foto/start hic
+                    // tamamlanmamis) olabilir. Boyle bir durumda sahte bir "aktif surus"
+                    // gostermek yerine kullanici foto/start akisina geri gonderilir.
+                    if (rental.status != "ACTIVE") {
+                        _effect.send(
+                            ActiveRentalEffect.RedirectToVehicleConditionBefore(
+                                rentalId = state.rentalId,
+                                vehicleId = state.vehicleId,
+                                brand = state.brand,
+                                model = state.model,
+                                plate = state.plate,
+                            ),
+                        )
+                        return@launch
+                    }
                     val startMillis = parseIsoUtc(rental.startDate) ?: System.currentTimeMillis()
                     _uiState.update {
                         it.copy(startEpochMillis = startMillis, plan = rental.plan, startFee = rental.startFee)
