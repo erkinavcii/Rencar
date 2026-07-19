@@ -37,6 +37,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -248,7 +249,8 @@ fun TripSummaryScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp)
-                        .padding(bottom = 20.dp),
+                        .padding(bottom = 20.dp)
+                        .testTag("trip_summary_done_button"),
                     shape = RoundedCornerShape(18.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Primary, contentColor = TextOnPrimary),
                 ) {
@@ -261,7 +263,8 @@ fun TripSummaryScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp)
-                        .padding(bottom = 20.dp),
+                        .padding(bottom = 20.dp)
+                        .testTag("trip_summary_pay_button"),
                     shape = RoundedCornerShape(18.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Primary, contentColor = TextOnPrimary),
                 ) {
@@ -294,21 +297,21 @@ private fun PaymentMethodSelector(
             icon = Icons.Default.AccountBalanceWallet,
             isSelected = selected == PaymentMethod.WALLET,
             onClick = { onSelected(PaymentMethod.WALLET) },
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.weight(1f).testTag("trip_summary_payment_wallet"),
         )
         PaymentMethodOption(
             label = "Kart",
             icon = Icons.Default.CreditCard,
             isSelected = selected == PaymentMethod.CARD,
             onClick = { onSelected(PaymentMethod.CARD) },
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.weight(1f).testTag("trip_summary_payment_card"),
         )
         PaymentMethodOption(
             label = "İyzico",
             icon = Icons.Default.Payments,
             isSelected = selected == PaymentMethod.IYZICO,
             onClick = { onSelected(PaymentMethod.IYZICO) },
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.weight(1f).testTag("trip_summary_payment_iyzico"),
         )
     }
 }

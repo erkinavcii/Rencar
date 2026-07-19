@@ -26,6 +26,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -82,7 +83,10 @@ fun PaymentCheckoutScreen(
             TopAppBar(
                 title = { Text(text = "İyzico ile Öde", style = headingXL, color = TextPrimaryDark) },
                 actions = {
-                    IconButton(onClick = { onIntent(PaymentCheckoutIntent.CloseClicked) }) {
+                    IconButton(
+                        onClick = { onIntent(PaymentCheckoutIntent.CloseClicked) },
+                        modifier = Modifier.testTag("payment_checkout_close_button"),
+                    ) {
                         Icon(imageVector = Icons.Default.Close, contentDescription = "Kapat", tint = TextPrimaryDark)
                     }
                 },
