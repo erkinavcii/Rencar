@@ -48,8 +48,14 @@ Kullanıcı etkileşimi
 | **UI (Screen)** | Durumsuz çizim, Intent yayma | İş mantığı, repository çağrısı, state sahipliği |
 | **UI (Route)** | ViewModel'i alma, state toplama, Effect tüketme | İş mantığı |
 | **ViewModel** | Intent işleme, state üretme, Effect gönderme, repository orkestrasyonu | Android/Compose/Context bağımlılığı |
-| **Repository** | Veri kaynağı soyutlaması (ağ/yerel) | UI/ViewModel'e bağımlılık |
+| **Repository** | Veri kaynağı soyutlaması (ağ/yerel), DTO→domain eşlemesi | UI/ViewModel'e bağımlılık, arayüzde `data.model.*Dto` döndürmek |
 | **DI (Module)** | Bağımlılık bağlama (`@Binds`/`@Provides`) | İş mantığı |
+
+Repository arayüzleri backend DTO'sunu (`data/model/*Dto`) değil, `domain/model/`
+paketindeki domain modelini döndürür; DTO → domain eşlemesi yalnızca `*RepositoryImpl`
+içinde yapılır. Amaç, backend sözleşmesi değiştiğinde hatanın Repository sınırında
+kalması, ViewModel/Screen'e sızmaması (bkz. [../decisions.md](../decisions.md), "Domain
+Katmanı — Repository DTO Sızıntısının Önlenmesi").
 
 ---
 
@@ -63,9 +69,11 @@ com.turkcell.rencar_pair/
 │   ├── <Screen>Contract.kt   // UiState + Intent + Effect (tek dosya)
 │   ├── <Screen>ViewModel.kt  // @HiltViewModel
 │   └── <Screen>Screen.kt     // <Screen>Route (stateful) + <Screen>Screen (stateless)
+├── domain/model/
+│   └── <X>.kt                 // repository'nin dışa döndürdüğü domain modeli (DTO değil)
 ├── data/<feature>/
-│   ├── <X>Repository.kt      // interface
-│   └── <Impl>Repository.kt   // implementasyon (@Inject constructor)
+│   ├── <X>Repository.kt      // interface, domain modeli döndürür
+│   └── <Impl>Repository.kt   // implementasyon (@Inject constructor), DTO→domain eşlemesi burada
 └── di/
     └── <X>Module.kt          // @Module @InstallIn(SingletonComponent) @Binds
 ```
