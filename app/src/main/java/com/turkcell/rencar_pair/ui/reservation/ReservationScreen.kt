@@ -40,6 +40,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -143,7 +144,8 @@ fun ReservationScreen(
                         .size(40.dp)
                         .clip(RoundedCornerShape(12.dp))
                         .background(MaterialTheme.colorScheme.surfaceVariant)
-                        .clickable(onClick = onBack),
+                        .clickable(onClick = onBack)
+                        .testTag("reservation_back_button"),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
@@ -172,21 +174,21 @@ fun ReservationScreen(
                     priceLabel = "₺${"%.2f".format(state.pricePerMinute).replace('.', ',')}/dk",
                     selected = state.selectedPlan == RentalPlan.DAKIKALIK,
                     onClick = { onIntent(ReservationIntent.PlanSelected(RentalPlan.DAKIKALIK)) },
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(1f).testTag("reservation_plan_dakikalik"),
                 )
                 PlanOptionCard(
                     label = "Saatlik",
                     priceLabel = "₺${state.pricePerHour.toInt()}/sa",
                     selected = state.selectedPlan == RentalPlan.SAATLIK,
                     onClick = { onIntent(ReservationIntent.PlanSelected(RentalPlan.SAATLIK)) },
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(1f).testTag("reservation_plan_saatlik"),
                 )
                 PlanOptionCard(
                     label = "Günlük",
                     priceLabel = "₺${state.pricePerDay.toInt()}",
                     selected = state.selectedPlan == RentalPlan.GUNLUK,
                     onClick = { onIntent(ReservationIntent.PlanSelected(RentalPlan.GUNLUK)) },
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(1f).testTag("reservation_plan_gunluk"),
                 )
             }
 
@@ -229,9 +231,11 @@ fun ReservationScreen(
 
             Row(
                 verticalAlignment = Alignment.Top,
-                modifier = Modifier.clickable {
-                    onIntent(ReservationIntent.TermsToggled(!state.termsAccepted))
-                },
+                modifier = Modifier
+                    .clickable {
+                        onIntent(ReservationIntent.TermsToggled(!state.termsAccepted))
+                    }
+                    .testTag("reservation_terms_checkbox"),
             ) {
                 Box(
                     modifier = Modifier
@@ -270,7 +274,8 @@ fun ReservationScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp)
-                    .padding(bottom = 20.dp),
+                    .padding(bottom = 20.dp)
+                    .testTag("reservation_confirm_button"),
                 shape = RoundedCornerShape(18.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Primary, contentColor = TextOnPrimary),
             ) {

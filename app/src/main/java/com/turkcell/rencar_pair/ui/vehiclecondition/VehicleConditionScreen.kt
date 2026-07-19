@@ -47,6 +47,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -191,7 +192,8 @@ fun VehicleConditionScreen(
                         .size(40.dp)
                         .clip(RoundedCornerShape(12.dp))
                         .background(MaterialTheme.colorScheme.surfaceVariant)
-                        .clickable(onClick = { onIntent(VehicleConditionIntent.BackClicked) }),
+                        .clickable(onClick = { onIntent(VehicleConditionIntent.BackClicked) })
+                        .testTag("vehicle_condition_back_button"),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
@@ -242,14 +244,14 @@ fun VehicleConditionScreen(
                     checked = VehicleSide.ON in state.checkedSides,
                     isUploading = state.uploadingSide == VehicleSide.ON,
                     onClick = { requestPhoto(VehicleSide.ON) },
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(1f).testTag("vehicle_condition_side_on"),
                 )
                 VehicleSidePhotoCard(
                     side = VehicleSide.ARKA,
                     checked = VehicleSide.ARKA in state.checkedSides,
                     isUploading = state.uploadingSide == VehicleSide.ARKA,
                     onClick = { requestPhoto(VehicleSide.ARKA) },
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(1f).testTag("vehicle_condition_side_arka"),
                 )
             }
 
@@ -264,14 +266,14 @@ fun VehicleConditionScreen(
                     checked = VehicleSide.SOL in state.checkedSides,
                     isUploading = state.uploadingSide == VehicleSide.SOL,
                     onClick = { requestPhoto(VehicleSide.SOL) },
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(1f).testTag("vehicle_condition_side_sol"),
                 )
                 VehicleSidePhotoCard(
                     side = VehicleSide.SAG,
                     checked = VehicleSide.SAG in state.checkedSides,
                     isUploading = state.uploadingSide == VehicleSide.SAG,
                     onClick = { requestPhoto(VehicleSide.SAG) },
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(1f).testTag("vehicle_condition_side_sag"),
                 )
             }
 
@@ -307,7 +309,8 @@ fun VehicleConditionScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp)
-                    .padding(bottom = 20.dp),
+                    .padding(bottom = 20.dp)
+                    .testTag("vehicle_condition_confirm_button"),
                 shape = RoundedCornerShape(18.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Primary, contentColor = TextOnPrimary),
             ) {
