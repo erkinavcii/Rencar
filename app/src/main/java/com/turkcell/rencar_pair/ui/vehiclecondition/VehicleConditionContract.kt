@@ -38,9 +38,14 @@ sealed interface VehicleConditionIntent {
     // Kamera/galeriden secilen gercek gorsel; BEFORE modunda sunucuya yuklenir.
     data class PhotoCaptured(val side: VehicleSide, val bytes: ByteArray) : VehicleConditionIntent
     data object ConfirmClicked : VehicleConditionIntent
+    // Ekrandaki ok butonu veya sistem geri tusu; BEFORE modunda PREPARING kiralamayi
+    // iptal etmek icin kullanilir (bkz. docs/decisions.md).
+    data object BackClicked : VehicleConditionIntent
 }
 
 sealed interface VehicleConditionEffect {
+    data object NavigateBack : VehicleConditionEffect
+
     data class NavigateToActiveRental(
         val rentalId: String,
         val vehicleId: String,

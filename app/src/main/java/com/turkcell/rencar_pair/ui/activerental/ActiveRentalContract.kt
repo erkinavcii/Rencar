@@ -79,4 +79,15 @@ sealed interface ActiveRentalEffect {
         val durationSeconds: Long,
         val distanceMeters: Double,
     ) : ActiveRentalEffect
+
+    // Rental backend'de PREPARING'de kalmis (henuz gercekten start edilmemis) ama bu
+    // ekrana ulasilmis (ornegin Home'daki GET /rentals/active yonlendirmesiyle); kullanici
+    // sahte bir "aktif surus" gormemeli, foto/start akisina geri gonderilmeli.
+    data class RedirectToVehicleConditionBefore(
+        val rentalId: String,
+        val vehicleId: String,
+        val brand: String,
+        val model: String,
+        val plate: String,
+    ) : ActiveRentalEffect
 }
