@@ -464,3 +464,13 @@
 - Uygulama: `ui/common/map/RencarMapMarkers.kt`'ye `createCarMarkerBitmap()` eklendi — projede zaten var olan `ic_car.xml` (yandan görünüşlü araba ikonu) renkli bir daire içinde bitmap'e çevrilip marker ikonu olarak kullanılıyor. `ActiveRentalScreen.ActiveRentalMapView`, marker'ı artık `remember` ile saklayıp (`vehicleMarker`) her yeni konumda silip yeniden eklemek yerine `Marker.setPosition()` + `MapLibreMap.updateMarker()` ile bir önceki konumdan yeniye ~1 saniyede (24 adım, 40ms aralıklarla, backend'in ~1-1.5 sn'lik gönderim aralığıyla uyumlu) doğrusal enterpolasyonla kaydırıyor.
 
 - Kapsam Dışı Bırakılan (bilinçli): `ic_car.xml` yandan görünüşlü bir ikon olduğundan aracın gerçek yönüne (bearing) göre döndürülmüyor — döndürülürse yan yatmış gibi görünür. Kullanıcıyla görüşülüp ikon sabit yönde tutulmasına karar verildi. Ayrıca gerçek yol geometrisine oturma (map-matching) da kapsam dışı — bunun için ayrı bir routing/map-matching servisi (ör. OSRM/Valhalla) gerekir, projede yok.
+
+### Lisans (Ehliyet Doğrulama) Ekranı — Soğuk Açılışta Sıkışma, Çıkış Yolu Eklendi
+
+- Karar: `RencarNavHost.kt`, Splash'tan PENDING kullanıcıyı Lisans ekranına yönlendirirken backstack'i `popUpTo(ROUTE_SPLASH) { inclusive = true }` ile temizliyor. Soğuk açılışta (uygulama kapatılıp token PENDING iken yeniden açıldığında) bu ekrana doğrudan düşülüyor ve backstack'te hiçbir önceki ekran kalmıyor; `LicenseScreen`'deki geri oku `navController.popBackStack()` çağırdığından (pop edecek bir şey olmadığı için) hiçbir şey yapmıyor — kullanıcı bu ekranda sıkışıp kalıyordu (canlı testte gözlemlendi).
+
+- Son Güncelleme Tarihi: 19.07.2026
+
+- Uygulama: `ProfileViewModel.logout()` ile birebir aynı desen (`TokenManager.clearTokens()` + Onboarding'e yönlendirme) `LicenseViewModel`'e taşındı (`LicenseIntent.Logout` → `LicenseEffect.NavigateToOnboarding`). `RencarNavHost.kt`, `ProfileRoute`'daki ile aynı `navigate(ROUTE_ONBOARDING) { popUpTo(0) { inclusive = true } }` deseniyle bağlandı. Backend'de oturumu iptal eden bir çağrı yok — mevcut `ProfileViewModel` davranışıyla tutarlı, yalnızca yerel token'lar temizleniyor.
+
+- Kapsam Dışı Bırakılan (bu adımda): "Çıkış yap" bağlantısının görsel tasarımı bilinçli olarak sade bırakıldı, ayrı bir adımda düzeltilecek — bu commit yalnızca fonksiyonel/navigasyon katmanını kapsıyor.

@@ -38,9 +38,14 @@ sealed interface LicenseIntent {
     data object MockBypassApprove : LicenseIntent // Dummy bypass for demo presentation
     // Yuz eslestirme + admin onayini tetikler (yalniz UNDER_REVIEW durumunda gosterilir).
     data object RequestAiApproval : LicenseIntent
+    // Soguk acilista PENDING kullanici dogrudan bu ekrana dustugunde backstack bos
+    // kalabiliyor (geri oku hicbir sey yapmiyor); kullanicinin sikismadan cikabilmesi
+    // icin eklendi.
+    data object Logout : LicenseIntent
 }
 
 sealed interface LicenseEffect {
     data class ShowError(val message: String) : LicenseEffect
     data object NavigateToNext : LicenseEffect
+    data object NavigateToOnboarding : LicenseEffect
 }

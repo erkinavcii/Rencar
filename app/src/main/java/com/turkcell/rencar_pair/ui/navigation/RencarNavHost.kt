@@ -171,6 +171,11 @@ fun RencarNavHost(
                         popUpTo(0) { inclusive = true }
                     }
                 },
+                onNavigateToOnboarding = {
+                    navController.navigate(ROUTE_ONBOARDING) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                },
                 onBack = { navController.popBackStack() }
             )
         }

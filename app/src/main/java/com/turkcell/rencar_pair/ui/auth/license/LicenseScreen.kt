@@ -56,6 +56,7 @@ import kotlinx.coroutines.withContext
 @Composable
 fun LicenseRoute(
     onNavigateToNext: () -> Unit,
+    onNavigateToOnboarding: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: LicenseViewModel = hiltViewModel(),
@@ -67,6 +68,7 @@ fun LicenseRoute(
         viewModel.effect.collect { effect ->
             when (effect) {
                 is LicenseEffect.NavigateToNext -> onNavigateToNext()
+                is LicenseEffect.NavigateToOnboarding -> onNavigateToOnboarding()
                 is LicenseEffect.ShowError -> snackbarHostState.showSnackbar(effect.message)
             }
         }
@@ -595,6 +597,22 @@ fun LicenseScreen(
                         color = TextOnPrimary
                     )
                 }
+            }
+
+            // Soguk acilista PENDING kullanici dogrudan bu adima dustugunde backstack
+            // bos kalabiliyor (yukaridaki geri oku hicbir sey yapmiyor); kullanicinin
+            // sikismadan cikabilmesi icin eklendi.
+            if (state.currentStep == LicenseStep.ONAY) {
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "Çıkış yap",
+                    style = bodyM,
+                    color = MaterialTheme.colorScheme.error,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onIntent(LicenseIntent.Logout) },
+                )
             }
 
             Spacer(modifier = Modifier.height(24.dp))

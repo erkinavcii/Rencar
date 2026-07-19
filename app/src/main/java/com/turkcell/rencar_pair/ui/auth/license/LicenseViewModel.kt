@@ -2,6 +2,7 @@ package com.turkcell.rencar_pair.ui.auth.license
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.turkcell.rencar_pair.data.local.TokenManager
 import com.turkcell.rencar_pair.data.repository.AdminApprovalRepository
 import com.turkcell.rencar_pair.data.repository.AuthRepository
 import com.turkcell.rencar_pair.data.repository.LicenseRepository
@@ -24,6 +25,7 @@ class LicenseViewModel @Inject constructor(
     private val faceMatcher: FaceMatcher,
     private val adminApprovalRepository: AdminApprovalRepository,
     private val authRepository: AuthRepository,
+    private val tokenManager: TokenManager,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(LicenseUiState())
@@ -59,6 +61,16 @@ class LicenseViewModel @Inject constructor(
                 }
             }
             is LicenseIntent.RequestAiApproval -> requestAiApproval()
+            is LicenseIntent.Logout -> logout()
+        }
+    }
+
+    // ProfileViewModel.logout() ile ayni desen: yalniz yerel token'lari temizler,
+    // backend'de oturumu iptal eden bir cagri yok (mevcut davranisla tutarli).
+    private fun logout() {
+        tokenManager.clearTokens()
+        viewModelScope.launch {
+            _effect.send(LicenseEffect.NavigateToOnboarding)
         }
     }
 
