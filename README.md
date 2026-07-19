@@ -23,9 +23,9 @@ Uygulamanın kullanıcı akışı boyunca yer alan 14 ekran görseli ve açıkla
 | ![Map](docs/images/map.png) <br> *Ana Ekran / MapLibre Haritası* | ![License](docs/images/license.png) <br> *Ehliyet Ön/Arka Yükleme* | ![License Verify](docs/images/licence_verify.png) <br> *Cihaz Üstü Yüz Eşleştirme* |
 
 ### 3. Kiralama, Yolculuk & İyzico Ödeme Akışı
-| Araç Hasar Tespiti | Aktif Yolculuk Paneli | Yolculuk Canlı Harita Takibi |
+| Araç Seçim ve Ayrıntıları | Aktif Yolculuk Paneli | Yolculuk Canlı Harita Takibi |
 | :---: | :---: | :---: |
-| ![Rental Car](docs/images/rental_car.png) <br> *Kiralama Öncesi Fotoğraflar* | ![Active Rental](docs/images/active_rental.png) <br> *Sayaçlar ve Kilit Kontrolü* | ![Active Rental 2](docs/images/active_rental2.png) <br> *Soket ile Canlı Araç Takibi* |
+| ![Rental Car](docs/images/rental_car.png) <br> *Kiralanacak Araç Detayı* | ![Active Rental](docs/images/active_rental.png) <br> *Sayaçlar ve Kilit Kontrolü* | ![Active Rental 2](docs/images/active_rental2.png) <br> *Soket ile Canlı Araç Takibi* |
 
 | Yolculuk Özeti | İyzico Ödeme Sayfası |
 | :---: | :---: |
