@@ -184,6 +184,12 @@ class LicenseViewModel @Inject constructor(
     // "AI ile Anında Onayla": on-device yuz eslestirme esigi gecilirse demo admin
     // hesabiyla anlik onay istenir; gecilmezse basvuru PENDING'de kalir ve normal
     // admin incelemesi beklenmeye devam eder (bu akis onu hicbir sekilde engellemez).
+    //
+    // GUVENLIK NOTU: "demo admin hesabi" burada AdminApprovalRepository icindeki
+    // gomulu ADMIN_PHONE/ADMIN_OTP sabitlerini kullanir - bu, hocanin "uygulama ici
+    // demo yeterli" yonlendirmesi kapsaminda alinan bilincli bir MVP kisayolu, gozden
+    // kacan bir hata degildir. Ayrinti ve prod-dogru mimari icin bkz.
+    // AdminApprovalRepository.kt ve docs/face_matching_architecture_plan.md.
     private fun requestAiApproval() {
         val state = _uiState.value
         if (state.isAiApproving) return

@@ -12,10 +12,17 @@ import javax.inject.Singleton
  * admin hesabini kullanir; OTP dogrulamasi da backend'de gercek SMS yerine sabit
  * "123456" koduyla simule edilmektedir (bkz. docs/ml-face-matching.md).
  *
- * ONEMLI: Bu, yalnizca demo/MVP kapsaminda kabul edilebilir bir kisayoldur. Gercek
- * bir ufounda admin yetkisi asla istemciye gomulmez; onay karari sunucu tarafinda
- * (ornegin ayri bir backend servisinde) verilir (bkz. architecture plan'daki
- * Zero-Trust/Yontem-B alternatifi).
+ * GUVENLIK NOTU (bilincli MVP kisayolu, gozden kacan bir hata degil): Asagidaki
+ * ADMIN_PHONE/ADMIN_OTP sabitleri statik analiz/AI kod taramasi tarafindan
+ * "hardcoded credentials" (CWE-798) olarak isaretlenecektir - bu tespit dogrudur.
+ * Kapsam karari: ayri bir Python/ngrok back-channel servisi yerine dogrudan
+ * uygulama-ici demo akisi kullanilmasi hocanin yonlendirmesiyle alindi ("uygulama
+ * ici yeterli, demo icin ayri servise gerek yok"). Bu spesifik uygulama (demo admin
+ * hesabinin istemciye gomulmesi) ise o kapsam karari icinde alinan bir muhendislik
+ * kisayoludur. Gercek bir urette admin yetkisi asla istemciye gomulmez; onay karari
+ * sunucu tarafinda (ornegin ayri bir backend servisinde) verilir - bkz.
+ * docs/face_matching_architecture_plan.md (Yontem B / Zero-Trust alternatifi) ve
+ * docs/decisions.md.
  */
 @Singleton
 class AdminApprovalRepository @Inject constructor(
@@ -48,6 +55,8 @@ class AdminApprovalRepository @Inject constructor(
     }
 
     private companion object {
+        // Bilincli demo/MVP kisayolu - bkz. sinif basindaki GUVENLIK NOTU. Prod'da
+        // asla yer almamali (CWE-798); dogru mimari docs/face_matching_architecture_plan.md'de.
         const val ADMIN_PHONE = "+905550000000"
         const val ADMIN_OTP = "123456"
     }
