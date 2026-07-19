@@ -13,9 +13,14 @@ Uygulamanın kullanıcı akışı boyunca yer alan 14 ekran görseli ve açıkla
 | :---: | :---: | :---: |
 | ![Splash](docs/images/splash.png) <br> *Açılış Ekranı* | ![Register](docs/images/register.png) <br> *Kullanıcı Kaydı* | ![Login](docs/images/login.png) <br> *Telefon Numarası Girişi* |
 
-| Profil Ekranı | Cüzdan & Kartlar | GPS Hassasiyeti |
+| Profil Ekranı | Cüzdan & Kartlar | Kart Ekleme |
 | :---: | :---: | :---: |
-| ![Profile](docs/images/profile.png) <br> *Üye Profil Detayları* | ![Wallet](docs/images/wallet.png) <br> *Bakiye ve Kayıtlı Kartlar* | ![GPS](docs/images/Gps_accuracy_setting.png) <br> *Sistem Konum İzinleri* |
+| ![Profile](docs/images/profile.png) <br> *Üye Profil Detayları* | ![Wallet](docs/images/wallet.png) <br> *Bakiye ve Kayıtlı Kartlar* | ![Card](docs/images/card.png) <br> *Yeni Kredi Kartı Ekleme* |
+
+| GPS Hassasiyeti |
+| :---: |
+| ![GPS](docs/images/Gps_accuracy_setting.png) <br> *Sistem Konum İzinleri* |
+
 
 ### 2. Araç Arama, Ehliyet & AI Doğrulama Akışı
 | Müsait Araçlar Haritası | Ehliyet Belgeleri | AI Yüz Doğrulama |
