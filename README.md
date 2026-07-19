@@ -17,12 +17,9 @@ Uygulamanın kullanıcı akışı boyunca yer alan 14 ekran görseli ve açıkla
 | :---: | :---: | :---: |
 | <img src="docs/images/profile.png" width="260" style="border:1px solid #d0d7de; border-radius:12px;"/> <br> *Üye Profil Detayları* | <img src="docs/images/wallet.png" width="260" style="border:1px solid #d0d7de; border-radius:12px;"/> <br> *Bakiye ve Kayıtlı Kartlar* | <img src="docs/images/card.png" width="260" style="border:1px solid #d0d7de; border-radius:12px;"/> <br> *Yeni Kredi Kartı Ekleme* |
 
-**GPS Hassasiyeti**
-
-<p align="center">
-  <img src="docs/images/Gps_accuracy_setting.png" width="260" style="border:1px solid #d0d7de; border-radius:12px;"/>
-  <br><em>Sistem Konum İzinleri</em>
-</p>
+| GPS Hassasiyeti |
+| :--- |
+| <img src="docs/images/Gps_accuracy_setting.png" width="260" style="border:1px solid #d0d7de; border-radius:12px;"/> <br> *Sistem Konum İzinleri* |
 
 
 ### 2. Araç Arama, Ehliyet & AI Doğrulama Akışı
@@ -40,11 +37,9 @@ Uygulamanın kullanıcı akışı boyunca yer alan 14 ekran görseli ve açıkla
 | <img src="docs/images/payment.png" width="260" style="border:1px solid #d0d7de; border-radius:12px;"/> <br> *Ücret ve İndirim Detayları* | <img src="docs/images/iyzico.png" width="260" style="border:1px solid #d0d7de; border-radius:12px;"/> <br> *WebView Sandbox Ödeme Formu* |
 
 ### 4. Kiralama Geçmişi (Kiralamalarım) Akışı
-
-<p align="center">
-  <img src="docs/images/history.png" width="260" style="border:1px solid #d0d7de; border-radius:12px;"/>
-  <br><em>Bu Ay / Tüm Zamanlar Özeti, Arama, Ay Filtresi ve Yolculuk Detay Paneli</em>
-</p>
+| Kiralamalarım |
+| :--- |
+| <img src="docs/images/history.png" width="260" style="border:1px solid #d0d7de; border-radius:12px;"/> <br> *Bu Ay / Tüm Zamanlar Özeti, Arama, Ay Filtresi ve Yolculuk Detay Paneli* |
 
 ---
 
