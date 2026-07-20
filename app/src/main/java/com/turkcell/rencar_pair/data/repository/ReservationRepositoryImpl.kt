@@ -3,26 +3,29 @@ package com.turkcell.rencar_pair.data.repository
 import com.turkcell.rencar_pair.data.model.CreateReservationDto
 import com.turkcell.rencar_pair.data.model.ReservationResponseDto
 import com.turkcell.rencar_pair.data.remote.ReservationService
+import com.turkcell.rencar_pair.domain.model.Reservation
 import org.json.JSONObject
 import retrofit2.Response
 import javax.inject.Inject
 import javax.inject.Singleton
+
+private fun ReservationResponseDto.toDomain(): Reservation = Reservation(id = id)
 
 @Singleton
 class ReservationRepositoryImpl @Inject constructor(
     private val reservationService: ReservationService
 ) : ReservationRepository {
 
-    override suspend fun reserveVehicle(vehicleId: String): Result<ReservationResponseDto> = runCatching {
+    override suspend fun reserveVehicle(vehicleId: String): Result<Reservation> = runCatching {
         val response = reservationService.reserveVehicle(CreateReservationDto(vehicleId))
         if (!response.isSuccessful) error(response.apiMessage())
-        response.body() ?: error("Sunucudan bos yanit alindi.")
+        response.body()?.toDomain() ?: error("Sunucudan bos yanit alindi.")
     }
 
-    override suspend fun getActiveReservation(): Result<ReservationResponseDto> = runCatching {
+    override suspend fun getActiveReservation(): Result<Reservation> = runCatching {
         val response = reservationService.getActiveReservation()
         if (!response.isSuccessful) error(response.apiMessage())
-        response.body() ?: error("Sunucudan bos yanit alindi.")
+        response.body()?.toDomain() ?: error("Sunucudan bos yanit alindi.")
     }
 
     override suspend fun cancelReservation(id: String): Result<Unit> = runCatching {
