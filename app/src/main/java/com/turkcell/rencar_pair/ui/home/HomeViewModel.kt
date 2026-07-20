@@ -2,8 +2,8 @@ package com.turkcell.rencar_pair.ui.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.turkcell.rencar_pair.data.model.VehicleResponseDto
 import com.turkcell.rencar_pair.data.repository.VehicleRepository
+import com.turkcell.rencar_pair.domain.model.Vehicle
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -32,7 +32,7 @@ private fun mapTransmissionLabel(transmission: String): String = when (transmiss
     else -> "Manuel"
 }
 
-private fun VehicleResponseDto.toMarker(): VehicleMarker = VehicleMarker(
+private fun Vehicle.toMarker(): VehicleMarker = VehicleMarker(
     id = id,
     position = LatLng(latitude, longitude),
     priceLabel = "₺${pricePerDay.toInt()}/gün",

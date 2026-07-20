@@ -524,3 +524,15 @@
 - Uygulama: `HistoryModels.kt`'deki `HistoryTrip`'e `paymentMethod: String?` alanı eklendi. `HistoryRepositoryImpl.toHistoryTrip()` bu alanı `RentalResponseDto.paymentMethod`'dan map'liyor. `HistoryScreen.kt`'deki `TripDetailBottomSheet`'e `Icons.Default.Payments` ikonuyla yeni bir `DetailRow` ("Ödeme Yöntemi") eklendi; `paymentMethodLabel()` yardımcı fonksiyonu `WALLET/CARD/IYZICO` değerlerini "Cüzdan/Kart/İyzico" olarak Türkçeleştiriyor, bilinmeyen/null değerde "-" gösteriyor.
 
 - Genel Ders: Bu projede iki farklı `NavBackStackEntry` arasında sonuç taşımak için `SavedStateHandle` kullanılacaksa, cihazda uçtan uca doğrulanmadan güvenilir varsayılmamalı; Hilt `@Singleton` + `SharedFlow` tabanlı bir event bus, iki ViewModel'in aynı nesneyi paylaştığından emin olunan (Hilt garantisi) daha basit ve öngörülebilir bir alternatiftir — benzer "ekran A'dan ekran B'ye sonuç bildirme" ihtiyaçlarında önce bu yaklaşım değerlendirilmeli.
+
+### Domain Katmanı — Repository DTO Sızıntısının Önlenmesi (Faz 1: Vehicle + Quote)
+
+- Karar: `data/repository/*` arayüzleri artık backend DTO'sunu (`data/model/*Dto`) değil, yeni `domain/model/` paketindeki domain modellerini döndürür. DTO → domain eşlemesi yalnızca `*RepositoryImpl` içinde yapılır; ViewModel ve Screen katmanları `data.model.*Dto` tiplerini hiçbir şekilde import edemez. Daha önce (bkz. "Kiralama Aktif Ekranı — Aracın Canlı Konumu" kararı) `domain/model` paketinin projede hiç bulunmadığı not edilmişti; bu karar o paketi oluşturur.
+
+- Son Güncelleme Tarihi: 20.07.2026
+
+- Gerekçe: `VehicleResponseDto` `ui/home/HomeViewModel.kt`'ye, `QuoteResponseDto` ise `ui/reservation/ReservationContract.kt` (State alanı olarak) ve dolayısıyla `ui/reservation/ReservationScreen.kt`'ye (`state.quote.estimatedTotal`) kadar sızmıştı. Backend sözleşmesi değiştiğinde hata doğrudan UI katmanına yayılıyor, ViewModel'ler backend JSON şeklinden bağımsız test edilemiyordu.
+
+- Kapsam (Faz 1): `domain/model/Vehicle.kt`, `domain/model/Quote.kt` eklendi; `VehicleRepository`/`VehicleRepositoryImpl` bu modelleri döndürecek şekilde güncellendi; `HomeViewModel` ve `ReservationContract` artık domain modeli kullanıyor. `HistoryRepositoryImpl.kt`, `ReservationViewModel.kt` ve `ReservationScreen.kt` DTO tipini açıkça import etmediğinden (alan adları birebir korunduğu için) bu partide değişmedi.
+
+- Backlog (Faz 2+, bu partinin kapsamı dışında, ayrı dallarda ele alınacak): `RentalRepository` (`RentalResponseDto`/`ActiveRentalResponseDto`/`PayRentalDto`/`VehicleLocationPoint` — `ReservationViewModel`, `ActiveRentalViewModel`, `PaymentCheckoutViewModel`, `TripSummaryViewModel`, `VehicleConditionViewModel`, `HistoryRepositoryImpl` tüketiyor), `ReservationRepository` (`ReservationResponseDto`), `AuthRepository.getMe()` (`UserResponseDto`), `WalletRepository` (`WalletDtos.kt`). Bu ekranlarda DTO tipi çoğunlukla açıkça import edilmediğinden (alan bazlı tüketim) sızıntı daha örtük; her biri ayrı bir domain modeli + repository imzası değişikliği gerektirir.

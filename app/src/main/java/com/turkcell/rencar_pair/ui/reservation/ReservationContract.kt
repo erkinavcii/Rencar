@@ -1,6 +1,6 @@
 package com.turkcell.rencar_pair.ui.reservation
 
-import com.turkcell.rencar_pair.data.model.QuoteResponseDto
+import com.turkcell.rencar_pair.domain.model.Quote
 
 enum class RentalPlan {
     DAKIKALIK,
@@ -19,7 +19,7 @@ data class ReservationUiState(
     val isSubmitting: Boolean = false,
     // GET /vehicles/{id}/quote sonucu; ekranin kendi uydurdugu orantili tahmin yerine
     // sunucunun gercek hesapladigi ucret (startFee/serviceFee dahil) gosterilir.
-    val quote: QuoteResponseDto? = null,
+    val quote: Quote? = null,
     val isQuoteLoading: Boolean = false,
     val quoteError: String? = null,
 ) {
