@@ -7,9 +7,12 @@ import com.turkcell.rencar_pair.data.model.RegisterDto
 import com.turkcell.rencar_pair.data.model.UserResponseDto
 import com.turkcell.rencar_pair.data.model.VerifyOtpDto
 import com.turkcell.rencar_pair.data.remote.AuthService
+import com.turkcell.rencar_pair.domain.model.User
 import org.json.JSONObject
 import retrofit2.Response
 import javax.inject.Inject
+
+private fun UserResponseDto.toDomain(): User = User(fullName = fullName, phone = phone, role = role)
 
 class AuthRepositoryImpl @Inject constructor(
     private val authService: AuthService,
@@ -56,7 +59,7 @@ class AuthRepositoryImpl @Inject constructor(
         tokenManager.saveTokens(body.accessToken, body.refreshToken)
     }
 
-    override suspend fun getMe(): Result<UserResponseDto> = runCatching {
+    override suspend fun getMe(): Result<User> = runCatching {
         val response = authService.getMe()
         if (!response.isSuccessful) error(response.apiMessage())
         val body = response.body() ?: error("Sunucudan gecersiz yanit.")
@@ -65,7 +68,7 @@ class AuthRepositoryImpl @Inject constructor(
             name  = body.fullName,
             phone = body.phone ?: tokenManager.getUserPhone(),
         )
-        body
+        body.toDomain()
     }
 
     // Parses the "message" field from the API error body.
